@@ -45,5 +45,7 @@ jobs:
       - name: Publish installers
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          name: Nova Search 2.0.0 Beta 1
+          body_path: docs/release-notes.md
+          prerelease: true
           files: release-assets/*
