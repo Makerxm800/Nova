@@ -1,7 +1,7 @@
 {
   "name": "nova-search",
   "version": "2.0.0",
-  "description": "Nova Search \u2014 a private, local-first universal file search for Windows, macOS and Linux",
+  "description": "Nova Search — a private, on-device file search with real video and music players for Windows, macOS and Linux",
   "main": "electron/main.cjs",
   "author": "Nova",
   "license": "MIT",
@@ -37,20 +37,38 @@
           ]
         }
       ],
+      "icon": "public/assets/icon-512.png",
       "artifactName": "Nova-Search-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "shortcutName": "Nova Search"
     },
     "mac": {
-      "target": "dmg"
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "icon": "public/assets/icon-512.png",
+      "category": "public.app-category.utilities",
+      "artifactName": "Nova-Search-${version}-${arch}.${ext}",
+      "darkModeSupport": true
     },
     "linux": {
-      "target": "AppImage",
-      "category": "Utility"
-    }
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility",
+      "icon": "public/assets/icon-512.png"
+    },
+    "artifactName": "Nova-Search-${version}-${os}-${arch}.${ext}"
   }
 }

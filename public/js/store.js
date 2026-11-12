@@ -149,20 +149,49 @@
   }
 
   let saveTimer = null;
+  // localStorage is ~5 MB. A whole-PC scan can hold hundreds of thousands of
+  // entries, so we persist what fits (newest first) and leave the rest in memory;
+  // the boot rescan fills the gap. Never mutate live state to make room.
+  const PERSIST_BUDGET = 3.6 * 1024 * 1024;
+
+  function payloadFor(entries) {
+    return JSON.stringify({ ...state, entries });
+  }
+
+  function fitsInBudget() {
+    let json = payloadFor(state.entries);
+    if (json.length <= PERSIST_BUDGET) return json;
+    // Keep every pinned/starred entry, then the newest of the rest.
+    const keep = [];
+    const rest = [];
+    const guard = new Set(state.pins || []);
+    for (const e of state.entries) (guard.has(e.id) || e.pinned || e.starred ? keep : rest).push(e);
+    rest.sort((a, b) => (b.modified || 0) - (a.modified || 0));
+    // Binary-search the largest prefix that fits.
+    let lo = 0, hi = rest.length, best = null;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const cand = JSON.stringify({ ...state, entries: keep.concat(rest.slice(0, mid)) });
+      if (cand.length <= PERSIST_BUDGET) { best = cand; lo = mid + 1; } else { hi = mid - 1; }
+    }
+    return best || JSON.stringify({ ...state, entries: keep, partialIndex: true });
+  }
+
   function persist(immediate = false) {
     const write = () => {
       try {
-        localStorage.setItem(KEY, JSON.stringify(state));
+        localStorage.setItem(KEY, fitsInBudget());
         saveTimer = null;
       } catch (err) {
-        // Quota is the common failure — drop cached thumbnails and retry once.
+        // Quota can still bite if other origins' data grew. Drop cached
+        // thumbnails, then fall back to metadata-only.
         console.warn('Nova: storage quota reached, trimming thumbnails', err);
         let trimmed = 0;
         for (const entry of state.entries) {
           if (entry.thumb && String(entry.thumb).startsWith('data:')) { delete entry.thumb; trimmed++; }
         }
         try {
-          localStorage.setItem(KEY, JSON.stringify(state));
+          localStorage.setItem(KEY, fitsInBudget());
           if (trimmed) NS.toast?.(`Storage nearly full — removed ${trimmed} cached thumbnails`, 'warn', 'info');
         } catch (err2) {
           console.warn('Nova: could not persist library', err2);

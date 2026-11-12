@@ -131,13 +131,14 @@ async function listDrives() {
       for (const line of mounts.split('\n')) {
         const [dev, mount, type] = line.split(' ');
         if (!mount || !dev) continue;
-        if (!/^\/(dev|sys|proc|run|snap|boot)/.test(mount)) continue;
-        if (!/^(ext4|ext3|xfs|btrfs|zfs|ntfs|ntfs3|exfat|vfat|fuse\..*)$/.test(type || '')) continue;
-        if (dev === 'tmpfs') continue;
+        // Keep the real filesystems, drop the kernel's bookkeeping mounts.
+        if (!/^(ext[234]|xfs|btrfs|zfs|f2fs|ntfs|ntfs3|exfat|vfat|hfsplus|apfs|fuseblk|fuse\..*)$/.test(type || '')) continue;
+        if (dev === 'tmpfs' || dev === 'none') continue;
         if (seen.has(mount)) continue;
+        // System dirs, snap packages and container overlays are not the user's data.
+        if (/^\/(dev|sys|proc|run|snap|boot)(\/|$)/.test(mount)) continue;
+        if (/^\/(var\/lib\/docker|var\/lib\/containers|tmp)(\/|$)/.test(mount)) continue;
         seen.add(mount);
-        // Skip Docker/container overlays; they are not the user's data.
-        if (/\/(var|tmp|containers)\//.test(mount)) continue;
       }
       if (seen.size) return [...seen];
     }
