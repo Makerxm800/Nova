@@ -10,7 +10,6 @@
   const icon = NS.icon;
 
   const MAX_TEXT = 64 * 1024;
-  let activeAudio = null;
   let lightboxState = { list: [], index: 0, zoom: 1, entry: null };
 
   const art = (entry) => {
@@ -194,51 +193,98 @@
   }
 
   function videoBlock(entry) {
-    if (entry.url) {
-      return `<video src="${esc(entry.url)}" controls playsinline preload="metadata" ${entry.thumb ? `poster="${esc(entry.thumb)}"` : ''}></video>`;
+    // Real transport: the player module owns scrubbing, speed, volume, PiP.
+    const key = `pv-v-${entry.id || NS.util.hashString(entry.name)}`;
+    if (!entry.url && !entry.thumb) {
+      return `<div class="pv-note">${icon('video', { size: 22 })} Video entry — index a real folder to play it here.</div>`;
     }
-    const poster = entry.thumb ? `<img src="${esc(entry.thumb)}" alt="" style="width:100%;display:block;aspect-ratio:16/10;object-fit:cover">` : '';
-    return `<div class="pv-video-ph" style="position:relative;width:100%;background:#000">
-      ${poster || `<div style="aspect-ratio:16/10;display:grid;place-items:center;color:${describe(entry.name).color}">${icon('video', { size: 46 })}</div>`}
-      <div style="position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(circle at 50% 60%,#0009,transparent 70%)">
-        <span class="play-badge" style="width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:#0b0c12cc;border:1px solid #ffffff2a;color:#fff;backdrop-filter:blur(8px)">
-          ${icon('play', { size: 20 })}
-        </span>
-      </div>
-      <div style="position:absolute;left:10px;bottom:8px;font-size:9.5px;font-family:var(--font-mono);color:#fff;background:#0b0c12b3;padding:3px 7px;border-radius:5px">
-        ${entry.meta && entry.meta.duration ? fmtDuration(entry.meta.duration) + ' · ' : ''}${esc(entry.ext.toUpperCase())} preview still
-      </div>
-    </div>`;
+    return NS.player.videoMarkup(entry, key, { onOpen: () => openLightbox(entry) });
   }
 
   function audioBlock(entry) {
-    const m = entry.meta || {};
-    const bars = 44;
-    const seed = NS.util.hashString(entry.name);
-    const wave = Array.from({ length: bars }, (_, i) => {
-      const v = (Math.sin(i * 0.6 + seed) * 0.5 + 0.5) * 0.7 + 0.3;
-      return Math.max(0.18, v);
+    const key = `pv-a-${entry.id || NS.util.hashString(entry.name)}`;
+    return NS.player.audioMarkup(entry, key, {
+      onPrev: () => queueStep(-1),
+      onNext: () => queueStep(1),
+      onOpen: () => openLightbox(entry),
     });
-    const art = entry.thumb
-      ? `<img src="${esc(entry.thumb)}" alt="">`
-      : `<span style="font-family:var(--font-display);font-size:22px;font-weight:700;color:#fff">${esc(NS.util.initials(m.artist || entry.name))}</span>`;
-    return `<div class="audio-card" data-audio-card>
-      <div class="audio-top">
-        <div class="audio-art">${art}</div>
-        <div class="audio-meta">
-          <b>${esc(NS.util.trimExt(entry.name))}</b>
-          <small>${esc(m.artist || 'Unknown artist')} · ${esc(m.album || 'Loose file')}</small>
-          <small style="color:var(--faint)">${esc(m.sampleRate || 'Audio file')}${m.duration ? ' · ' + fmtDuration(m.duration) : ''}</small>
-        </div>
-      </div>
-      <div class="waveform">${wave.map((v, i) => `<i style="height:${(v * 100).toFixed(0)}%;animation-delay:${(i * 38) % 900}ms;animation-duration:${1100 + ((seed + i * 37) % 700)}ms"></i>`).join('')}</div>
-      ${entry.url ? `<audio src="${esc(entry.url)}" controls preload="none" style="width:100%"></audio>` : `
-      <div class="audio-actions">
-        <button class="play-btn" data-audio-toggle>${icon('play', { size: 16 })}</button>
-        <span class="audio-time" data-audio-time>0:00 / ${fmtDuration(m.duration || 0)}</span>
-        <span style="margin-left:auto;font-size:9px;color:var(--faint);letter-spacing:.06em;text-transform:uppercase">Synthesised preview</span>
-      </div>`}
-    </div>`;
+  }
+
+  /* Audio queue follows the visible result list, so next/prev feel alive. */
+  let queue = [];
+  let queueIndex = -1;
+  let audioHost = null;   // {wrap, entry}
+
+  function setQueue(list, entry) {
+    const all = (list || []).filter((e) => e && e.kind === 'audio');
+    // Prefer tracks that actually have bytes: next/prev must never land on a
+    // sample entry that can only show metadata.
+    const playable = all.filter((e) => e.url);
+    const next = playable.length > 1 ? playable : all;
+    // Keep the cursor stable when the same list is re-passed, otherwise every
+    // preview re-render would silently reset the queue to the first track.
+    const same = next.length === queue.length && next.every((e, i) => queue[i] && queue[i].id === e.id);
+    if (!same) {
+      queue = next;
+      queueIndex = queue.findIndex((e) => entry && e.id === entry.id);
+    } else if (entry) {
+      const at = queue.findIndex((e) => e.id === entry.id);
+      if (at >= 0) queueIndex = at;
+    }
+  }
+  function queueStep(dir) {
+    // Resolve the live host every time: the preview re-renders on hydration,
+    // so a cached node reference can be detached by the time the user clicks.
+    const liveWrap = document.querySelector('#pvMedia .pv-media-wrap.is-audio') || (audioHost && audioHost.wrap);
+    if (!liveWrap) return;
+    if (queue.length < 2) { NS.ui.toast('No other playable audio in these results', 'info', 'music'); return; }
+    if (queueIndex < 0) queueIndex = 0;
+    queueIndex = (queueIndex + dir + queue.length) % queue.length;
+    const next = queue[queueIndex];
+    audioHost = { wrap: liveWrap, entry: next };
+    mountAudioInto(liveWrap, next, { autoplay: true, force: true });
+    // Keep the app's "currently previewed" pointer in sync, so the metadata
+    // panel and Open button follow the track that is actually playing.
+    if (NS.app && NS.app.state) NS.app.state.previewEntry = next;
+    const meta = document.querySelector('#pvMeta');
+    if (meta && NS.preview.refreshMeta) NS.preview.refreshMeta(next);
+  }
+
+  function mountAudioInto(wrap, entry, opts = {}) {
+    if (!wrap) return;
+    NS.player.unmountAll(wrap);
+    const key = `pv-a-${entry.id}`;
+    const existing = wrap.querySelector(`[data-player="audio"][data-key="${key}"]`);
+    const needsRender = !existing || opts.force;
+    if (needsRender) {
+      wrap.innerHTML = NS.player.audioMarkup(entry, key, {
+        onPrev: () => queueStep(-1),
+        onNext: () => queueStep(1),
+        onOpen: () => openLightbox(entry),
+      });
+    }
+    const host = wrap.querySelector('[data-player="audio"]');
+    const player = NS.player.mount(host, entry, {
+      onPrev: () => queueStep(-1),
+      onNext: () => queueStep(1),
+      onOpen: () => openLightbox(entry),
+    });
+    audioHost = { wrap, entry };
+    // Always write the real tags — hydrated entries carry artist/album/duration
+    // that the markup may have been built before we knew about.
+    const m = entry.meta || {};
+    const now = wrap.querySelector('.np-now');
+    if (now) {
+      now.innerHTML = `<b>${esc(NS.util.trimExt(entry.name))}</b><small>${
+        esc(m.artist ? (m.artist + (m.album ? ' · ' + m.album : ''))
+          : (entry.root || NS.util.parentFolder(entry) || 'Local file'))}${
+        m.artist ? '' : ` · ${esc((entry.ext || '').toUpperCase())}`}</small>`;
+    }
+    if (opts.autoplay) {
+      const media = wrap.querySelector('[data-media]');
+      if (media && media.getAttribute('src')) media.play().catch(() => {});
+    }
+    return player;
   }
 
   function textBlock(entry) {
@@ -338,8 +384,8 @@
     const d = describe(entry.name);
     switch (d.kind) {
       case 'image': return imageBlock(entry);
-      case 'video': return videoBlock(entry);
-      case 'audio': return audioBlock(entry);
+      case 'video': return `<div class="pv-media-wrap">${videoBlock(entry)}</div>`;
+      case 'audio': return `<div class="pv-media-wrap is-audio">${audioBlock(entry)}</div>`;
       case 'pdf': return pdfBlock(entry);
       case 'doc':
       case 'text':
@@ -390,9 +436,12 @@
       return;
     }
     stopAudio();
+    NS.player.unmountAll(container);
     const d = describe(entry.name);
+    container._novaCtx = ctx;
     container.style.setProperty('--kc', d.color);
     container.innerHTML = mediaHTML(entry);
+    setQueue(ctx.queue, entry);
     wireMedia(container, entry);
 
     if (ctx.meta) ctx.meta.innerHTML = metaRows(entry);
@@ -424,7 +473,7 @@
   function describeNote(entry) {
     const d = describe(entry.name);
     if (entry.content && d.kind === 'text') return '';
-    if (entry.demo && (d.kind === 'video' || d.kind === 'design' || d.kind === 'archive')) {
+    if (entry.demo && !entry.url && (d.kind === 'video' || d.kind === 'design' || d.kind === 'archive')) {
       return `<span style="color:var(--faint)">Sample entry from the demo library. Index a real folder to preview this format's actual contents.</span>`;
     }
     if (entry.source === 'native' && entry.size > 50 * 1024 * 1024 && d.kind === 'image') {
@@ -436,99 +485,28 @@
   function wireMedia(container, entry) {
     const img = container.querySelector('[data-lb-open]');
     if (img) img.addEventListener('click', () => openLightbox(entry));
-    const toggle = container.querySelector('[data-audio-toggle]');
-    if (toggle) {
-      toggle.addEventListener('click', async () => {
-        const card = container.querySelector('[data-audio-card]');
-        if (activeAudio && activeAudio.card === card) {
-          stopAudio();
-          return;
-        }
-        stopAudio();
-        card.classList.add('playing');
-        toggle.innerHTML = icon('pause', { size: 16 });
-        const timeEl = container.querySelector('[data-audio-time]');
-        const duration = (entry.meta && entry.meta.duration) || 16;
-        const started = performance.now();
-        const handle = { card, toggle, timer: null };
-        handle.timer = setInterval(() => {
-          const elapsed = (performance.now() - started) / 1000;
-          if (timeEl) timeEl.textContent = `${fmtDuration(Math.min(elapsed, duration))} / ${fmtDuration(duration)}`;
-          if (elapsed >= duration) stopAudio();
-        }, 200);
-        activeAudio = handle;
-        try { playAmbient(entry); } catch {}
+    const host = container.querySelector('[data-player]');
+    if (host) {
+      const wrap = host.closest('.pv-media-wrap') || container;
+      NS.player.unmountAll(wrap);
+      if (host.dataset.player === 'audio') {
+        mountAudioInto(wrap, entry);
+        return;
+      }
+      NS.player.mount(host, entry, {
+        onOpen: () => openLightbox(entry),
+        // The decoder knows the truth; repaint the metadata grid when it lands.
+        onMeta: () => {
+          const ctx = (wrap.closest('[data-pv-host]') || container)._novaCtx || container._novaCtx;
+          if (ctx && ctx.meta) ctx.meta.innerHTML = metaRows(entry);
+        },
       });
     }
   }
 
-  /* tiny Web Audio ambience for demo audio entries */
-  let audioCtx = null;
-  let audioNodes = null;
-  function playAmbient(entry) {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    audioCtx = audioCtx || new AC();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const gain = audioCtx.createGain();
-    gain.gain.value = 0;
-    gain.connect(audioCtx.destination);
-    const masterFilter = audioCtx.createBiquadFilter();
-    masterFilter.type = 'lowpass';
-    masterFilter.frequency.value = 900;
-    masterFilter.Q.value = 0.7;
-    masterFilter.connect(gain);
-    const seed = NS.util.hashString(entry.name);
-    const root = 110 * Math.pow(2, (seed % 5) / 12);
-    const ratios = [1, 1.5, 2, 2.6667];
-    const oscs = ratios.map((r, i) => {
-      const osc = audioCtx.createOscillator();
-      osc.type = i % 2 ? 'sine' : 'triangle';
-      osc.frequency.value = root * r;
-      const g = audioCtx.createGain();
-      g.gain.value = 0.22 / (i + 1);
-      const lfo = audioCtx.createOscillator();
-      lfo.frequency.value = 0.05 + i * 0.017;
-      const lfoGain = audioCtx.createGain();
-      lfoGain.gain.value = 0.12;
-      lfo.connect(lfoGain).connect(g.gain);
-      osc.connect(g).connect(masterFilter);
-      osc.start();
-      lfo.start();
-      return { osc, lfo };
-    });
-    gain.gain.linearRampToValueAtTime(0.16, audioCtx.currentTime + 1.8);
-    audioNodes = { gain, oscs };
-    setTimeout(() => {
-      if (audioNodes) {
-        try {
-          audioNodes.gain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
-          setTimeout(() => stopAudio(), 1300);
-        } catch {}
-      }
-    }, 15000);
-  }
-
-  function stopAudio() {
-    if (audioNodes) {
-      try {
-        audioNodes.gain.gain.cancelScheduledValues(audioCtx.currentTime);
-        audioNodes.gain.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.15);
-        const nodes = audioNodes;
-        setTimeout(() => {
-          nodes.oscs.forEach(({ osc, lfo }) => { try { osc.stop(); lfo.stop(); } catch {} });
-        }, 400);
-      } catch {}
-      audioNodes = null;
-    }
-    if (activeAudio) {
-      clearInterval(activeAudio.timer);
-      const { card, toggle } = activeAudio;
-      card.classList.remove('playing');
-      toggle.innerHTML = icon('play', { size: 16 });
-      activeAudio = null;
-    }
-  }
+  /* The media engine owns playback now; this is kept as a no-op so older
+     callers (closePreview, render) can keep requesting a stop safely. */
+  function stopAudio() {}
 
   /* ---------------------------- lightbox ---------------------------------- */
   function openLightbox(entry, list) {
@@ -559,8 +537,23 @@
     lightboxState.zoom = 1;
     if (zoomEl) zoomEl.textContent = '100%';
     if (title) title.innerHTML = `${esc(entry.name)}<small>${esc(d.label)} · ${fmtBytes(entry.size)}</small>`;
+    NS.player.unmountAll(stage);
     if (d.kind === 'image' && (entry.url || entry.thumb)) {
       stage.innerHTML = `<img src="${esc(entry.url || entry.thumb)}" alt="${esc(entry.name)}" id="lbImage">`;
+    } else if (d.kind === 'video' && (entry.url || entry.thumb)) {
+      stage.innerHTML = `<div class="lb-media">${NS.player.videoMarkup(entry, `lb-v-${entry.id}`, { compact: true })}</div>`;
+      NS.player.mount(stage.querySelector('[data-player]'), entry);
+    } else if (d.kind === 'audio' && entry.url) {
+      stage.innerHTML = `<div class="lb-media"><div class="pv-media-wrap is-audio">${NS.player.audioMarkup(entry, `lb-a-${entry.id}`, {
+        onPrev: () => { stepLightbox(-1); },
+        onNext: () => { stepLightbox(1); },
+      })}</div></div>`;
+      const wrap = stage.querySelector('.pv-media-wrap');
+      const st = NS.player.mount(stage.querySelector('[data-player]'), entry);
+      // clicking a player's next/prev should also move the lightbox focus
+      stage.querySelectorAll('[data-act="next"]').forEach((b) => b.addEventListener('click', () => stepLightbox(1)));
+      stage.querySelectorAll('[data-act="prev"]').forEach((b) => b.addEventListener('click', () => stepLightbox(-1)));
+      if (st && st.media) setTimeout(() => st.media.play().catch(() => {}), 60);
     } else if (entry.content) {
       stage.innerHTML = `<div class="lb-text"><pre>${esc(String(entry.content).slice(0, MAX_TEXT))}</pre></div>`;
     } else {
@@ -581,9 +574,17 @@
     }
   }
 
+  function stepLightbox(dir) {
+    if (!lightboxState.list.length) return;
+    lightboxState.index = (lightboxState.index + dir + lightboxState.list.length) % lightboxState.list.length;
+    renderLightbox(lightboxState.list[lightboxState.index]);
+  }
+
   function closeLightbox() {
     const lb = document.getElementById('lightbox');
     if (!lb) return;
+    const stage = document.getElementById('lbStage');
+    if (stage) NS.player.unmountAll(stage);
     lb.hidden = true;
     document.body.style.overflow = '';
   }
@@ -621,14 +622,8 @@
     document.addEventListener('keydown', (ev) => {
       if (document.getElementById('lightbox')?.hidden !== false) return;
       if (ev.key === 'Escape') { ev.stopPropagation(); closeLightbox(); }
-      if (ev.key === 'ArrowRight') {
-        lightboxState.index = (lightboxState.index + 1) % lightboxState.list.length;
-        renderLightbox(lightboxState.list[lightboxState.index]);
-      }
-      if (ev.key === 'ArrowLeft') {
-        lightboxState.index = (lightboxState.index - 1 + lightboxState.list.length) % lightboxState.list.length;
-        renderLightbox(lightboxState.list[lightboxState.index]);
-      }
+      if (ev.key === 'ArrowRight') stepLightbox(1);
+      if (ev.key === 'ArrowLeft') stepLightbox(-1);
       if (ev.key === '+' || ev.key === '=') setZoom(lightboxState.zoom * 1.2);
       if (ev.key === '-') setZoom(lightboxState.zoom / 1.2);
       if (ev.key === '0') setZoom(1);
@@ -636,7 +631,11 @@
   }
 
   NS.preview = {
-    render, mediaHTML, mediaFor: (e) => describe(e.name),
+    render, mediaHTML, mediaFor: (e) => describe(e.name), metaRows,
+    refreshMeta: (entry) => {
+      const meta = document.querySelector('#pvMeta');
+      if (meta) meta.innerHTML = metaRows(entry);
+    },
     openLightbox, closeLightbox, bindLightbox,
     highlightCode, mdToHtml, parseCSV, stopAudio,
     state: lightboxState,

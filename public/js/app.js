@@ -22,6 +22,8 @@
     { id: 'media', label: 'Media', icon: 'video', kinds: ['video', 'audio'] },
     { id: 'code', label: 'Code', icon: 'code', kinds: ['code', 'data'] },
     { id: 'archives', label: 'Archives', icon: 'archive', kinds: ['archive'] },
+    { id: 'models', label: 'Models', icon: 'cube', kinds: ['model'] },
+    { id: 'disks', label: 'Disks', icon: 'drive', kinds: ['disk'] },
   ];
 
   const SORTS = [
@@ -54,6 +56,7 @@
     askRun: null,
     lastTook: null,
     browserFiles: new Map(),
+    fsRoots: new Map(),
     types: new Set(),
   };
 
@@ -97,8 +100,12 @@
     refreshMeta();
     setView('search', { keepQuery: true });
     focusQuery();
+    warmIndex();
+    bindScopeWheel();
+    setTimeout(syncScopeFade, 300);
+    document.fonts?.ready?.then(syncScopeFade).catch(() => {});
 
-    window.addEventListener('resize', debounce(updatePreviewVisibility, 120));
+    window.addEventListener('resize', debounce(() => { updatePreviewVisibility(); syncScopeFade(); }, 120));
     window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', () => {
       if (store.state.settings.theme === 'system') applyTheme();
     });
@@ -164,14 +171,16 @@
       : `${fmtNum(entries.length)} sample entries · demo library`;
     if (refs.indexState) refs.indexState.querySelector('b').textContent = roots.length ? 'Indexed' : 'Demo ready';
 
-    // hero stats
+    // hero stats — the fourth cell reports a real median, never a single sample
     if (refs.heroStats) {
       const totalSize = entries.reduce((sum, e) => sum + (e.size || 0), 0);
+      const recent = (state.recentTook || []).slice(-9).sort((a, b) => a - b);
+      const median = recent.length ? recent[Math.floor(recent.length / 2)] : null;
       const stats = [
         { value: fmtNum(entries.length), unit: '', label: 'files indexed' },
         { value: String(kinds.size), unit: '', label: 'formats live' },
         { value: fmtNum(folders.size), unit: '', label: 'folders mapped' },
-        { value: state.lastTook != null ? state.lastTook.toFixed(0) : '—', unit: 'ms', label: 'median query' },
+        { value: median != null ? String(Math.max(1, Math.round(median))) : '—', unit: 'ms', label: 'median query' },
       ];
       refs.heroStats.innerHTML = stats.map((st) => `<div class="stat"><b>${st.value}${st.unit ? `<span class="unit">${st.unit}</span>` : ''}</b><span>${st.label}</span></div>`).join('');
       refs.heroStats.title = `${fmtBytes(totalSize)} tracked locally`;
@@ -203,6 +212,25 @@
         <span data-icon="${scope.icon}"></span><span class="sc-label">${scope.label}</span>${scope.kinds ? `<b>${fmtNum(counts.get(scope.id) || 0)}</b>` : `<b>${fmtNum(entries.length)}</b>`}
       </button>`).join('');
     ui.paintIcons(refs.scopes);
+    syncScopeFade();
+  }
+
+  function bindScopeWheel() {
+    const rail = refs.scopes;
+    if (!rail) return;
+    rail.addEventListener('wheel', (ev) => {
+      if (Math.abs(ev.deltaY) < Math.abs(ev.deltaX)) return;
+      if (rail.scrollWidth - rail.clientWidth < 4) return;
+      rail.scrollLeft += ev.deltaY;
+      ev.preventDefault();
+    }, { passive: false });
+  }
+
+  function syncScopeFade() {
+    const rail = refs.scopes;
+    if (!rail) return;
+    const over = rail.scrollWidth - rail.clientWidth > 4;
+    rail.classList.toggle('faded', over);
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -249,7 +277,15 @@
     }, 140));
     input.addEventListener('input', () => {
       state.query = input.value;
-      state.renderLimit = 80;
+      // While a burst of typing is in flight keep the first paint small; a
+      // trailing pass restores the full page once the keyboard goes quiet.
+      const bursting = Date.now() - (state._lastKey || 0) < 220;
+      state._lastKey = Date.now();
+      state.renderLimit = bursting ? 48 : 80;
+      clearTimeout(bindField._grow);
+      bindField._grow = setTimeout(() => {
+        if (state.renderLimit !== 80) { state.renderLimit = 80; runSearch(); }
+      }, 260);
       state.smartDismissed.clear();
       state.forceMode = null;
       refs.field.classList.toggle('typing', true);
@@ -575,6 +611,9 @@
     });
     state.run = run;
     state.lastTook = run.took;
+    if (run.took != null && run.total > 0) {
+      state.recentTook = (state.recentTook || []).concat(run.took).slice(-30);
+    }
     state.smartChips = smart.chips;
     state.effectiveQuery = effective;
     if (state.view === 'search' || state.view === 'starred' || state.view === 'recent') {
@@ -599,6 +638,17 @@
       const median = refs.heroStats.querySelectorAll('.stat b')[3];
       if (median) median.innerHTML = `${ms}<span class="unit">ms</span>`;
     }
+  }
+
+  /* Pre-fold the corpus while the UI is idle so the first keystroke is instant. */
+  function warmIndex() {
+    const entries = store.state.entries;
+    if (!entries || entries.length < 400) return;
+    // Let the render settle first: warming is never allowed to compete with
+    // the frame the user is looking at.
+    const kick = () => { try { NS.search.warm(entries); } catch {} };
+    if (window.requestIdleCallback) window.requestIdleCallback(kick, { timeout: 1800 });
+    else setTimeout(kick, 700);
   }
 
   function refreshMetaLite() {
@@ -698,6 +748,47 @@
     </article>`;
   }
 
+  /* Update an existing row in place (fast typing path). */
+  function patchRow(row, item, index) {
+    const entry = item.entry;
+    const def = NS.kindOf(entry);
+    row.dataset.id = entry.id;
+    row.style.setProperty('--kc', def.color);
+    row.style.animationDelay = `${Math.min(index, 14) * 22}ms`;
+    const nameEl = row.querySelector('.r-name');
+    if (nameEl) {
+      const wanted = nameHTML(entry, item.indices) + flagHTML(entry);
+      if (nameEl.innerHTML !== wanted) nameEl.innerHTML = wanted;
+    }
+    const locEl = row.querySelector('.r-loc span');
+    const loc = parentFolder(entry);
+    if (locEl && locEl.textContent !== loc) locEl.textContent = loc;
+    const subEl = row.querySelector('.r-sub');
+    if (subEl) {
+      const wanted = (entry.badge ? `<span class="r-badge" style="--bc:${badgeColor(entry.badge.tone)}">${esc(entry.badge.text)}</span>` : '')
+        + ((entry.tags || []).slice(0, 3).map((t) => `<span class="r-tag">#${esc(t)}</span>`).join('')
+        || `<span class="r-gmeta">${esc(`${def.label} · ${fmtBytes(entry.size)} · ${fmtDate(entry.modified)}`)}</span>`);
+      if (subEl.innerHTML !== wanted) subEl.innerHTML = wanted;
+    }
+    const setText = (sel, text) => { const n = row.querySelector(sel); if (n && n.textContent !== text) n.textContent = text; };
+    setText('.r-size', fmtBytes(entry.size));
+    setText('.r-date', fmtDate(entry.modified));
+    const thumb = row.querySelector('.thumb');
+    if (thumb) {
+      const wanted = entry.thumb ? 'img' : 'svg';
+      if (!thumb.firstElementChild || thumb.firstElementChild.tagName.toLowerCase() !== wanted) {
+        thumb.innerHTML = thumbHTML(entry, def);
+        thumb.classList.toggle('ext-thumb', !entry.thumb);
+      }
+    }
+  }
+
+  function flagHTML(entry) {
+    const pinned = entry.pinned || store.state.pins.includes(entry.id);
+    return (pinned ? `<span class="flag" title="Pinned">${icon('pin', { size: 12 })}</span>` : '')
+      + (entry.starred ? `<span class="flag star" title="Starred">${icon('star', { size: 12 })}</span>` : '');
+  }
+
   function badgeColor(tone) {
     return { violet: '#a78bfa', cyan: '#22d3ee', green: '#34d399', amber: '#fbbf24', rose: '#fb7185' }[tone] || '#a78bfa';
   }
@@ -754,8 +845,20 @@
     if (run.results.length > items.length) {
       html += `<button class="load-more" id="loadMore">Load ${Math.min(120, run.results.length - items.length)} more · ${fmtNum(run.results.length - items.length)} remaining</button>`;
     }
-    list.innerHTML = html;
     list.hidden = false;
+    const recycle = state.layout === 'list' && state.view !== 'recent'
+      && list.querySelectorAll('article.row').length === items.length;
+    if (recycle) {
+      // Same geometry, new content: patch in place so the browser never
+      // re-parses 80 rows of markup while the user is still typing.
+      const rows = list.querySelectorAll('article.row');
+      for (let i = 0; i < items.length; i++) patchRow(rows[i], items[i], i);
+      const tail = list.querySelector('.load-more');
+      if (tail) tail.remove();
+    } else {
+      list.innerHTML = html;
+      if (html.includes('data-icon')) ui.paintIcons(list);
+    }
     const more = document.getElementById('loadMore');
     if (more) more.addEventListener('click', () => { state.renderLimit += 120; renderResults(run); });
 
@@ -1174,6 +1277,7 @@
     refs.pvScroll.scrollTop = opts.silent ? refs.pvScroll.scrollTop : 0;
     NS.preview.render(entry, {
       container: refs.pvMedia,
+      queue: state.run ? state.run.results.map((r) => r.entry) : [entry],
       name: refs.pvName,
       path: refs.pvPath,
       meta: refs.pvMeta,
@@ -1607,7 +1711,13 @@
   const rootHandlers = {
     indexFolders: () => indexFolders(),
     removeRoot: (path) => removeRoot(path),
-    refresh: () => { runSearch(); renderScopes(); renderHero(); },
+    refresh: async () => {
+      if (state.fsRoots.size) {
+        const n = await refreshDirectoryRoots();
+        if (n) ui.toast(`Rescanned ${n} folder${n === 1 ? '' : 's'}`, 'good', 'refresh');
+      }
+      runSearch(); renderScopes(); renderHero(); refreshMeta();
+    },
   };
 
   function bindIndexing() {
@@ -1634,7 +1744,113 @@
       }
       return;
     }
+    // Chrome, Edge and the Electron shell expose a real directory picker.
+    // Use it when we can: it also lets "refresh" rescan silently.
+    if (window.showDirectoryPicker) {
+      try {
+        const dir = await window.showDirectoryPicker({ id: 'nova-root', mode: 'read' });
+        if (dir) {
+          await ingestDirectoryHandle(dir, { rescan: false });
+          state.fsRoots.set(dir.name, dir);
+          return;
+        }
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        // fall through to the classic directory input
+      }
+    }
     refs.folderInput.click();
+  }
+
+  /* Walk a FileSystemDirectoryHandle (Chrome/Edge/Electron): names, sizes,
+     dates, plus browser-playable media URLs so video and music work straight
+     from the real folder. */
+  async function ingestDirectoryHandle(dir, opts = {}) {
+    const rootName = dir.name;
+    const stop = ui.toast(`Reading <b>${esc(rootName)}</b>…`, 'info', 'refresh', 120000);
+    const entries = [];
+    const maxFiles = 25000;
+    const playable = (name, size) => {
+      const ext = U.fileExt(name);
+      if (['mp4', 'm4v', 'webm', 'ogv', 'mov'].includes(ext) && size < 800 * 1024 * 1024) return 'video';
+      if (['mp3', 'wav', 'ogg', 'oga', 'm4a', 'aac', 'flac', 'opus'].includes(ext) && size < 300 * 1024 * 1024) return 'audio';
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp', 'svg'].includes(ext) && size < 40 * 1024 * 1024) return 'image';
+      return '';
+    };
+
+    const walk = async (handle, prefix, depth) => {
+      if (entries.length >= maxFiles || depth > 12) return;
+      for await (const [name, child] of handle.entries()) {
+        if (entries.length >= maxFiles) return;
+        const rel = prefix ? `${prefix}/${name}` : name;
+        if (child.kind === 'directory') {
+          if (/(^|[\\/])(node_modules|\.git|\.cache|Library|AppData)$/.test(rel)) continue;
+          entries.push({
+            id: 'f-' + U.hashString(rel.toLowerCase()), name, path: rel, dir: U.pathDir(rel),
+            root: rootName, rootPath: rootName, ext: '', kind: 'folder', size: 0,
+            modified: Date.now(), tags: [], starred: false, pinned: false, thumb: '', meta: {},
+            source: 'browser', demo: false,
+          });
+          await walk(child, rel, depth + 1);
+          continue;
+        }
+        if (/\.(part|tmp|crdownload|download)$/i.test(name)) continue;
+        let file = null;
+        try { file = await child.getFile(); } catch { continue; }
+        if (!file) continue;
+        const hidden = /(^|[\\/])\./.test(name);
+        if (hidden && !store.state.settings.showHidden) continue;
+        const desc = NS.describe(name);
+        const entry = {
+          id: 'f-' + U.hashString(rel.toLowerCase()), name, path: rel, dir: U.pathDir(rel),
+          root: rootName, rootPath: rootName, ext: U.fileExt(name), kind: desc.kind,
+          size: file.size, modified: file.lastModified || Date.now(),
+          tags: [], starred: false, pinned: false, thumb: '', meta: {},
+          source: 'browser', demo: false,
+        };
+        try {
+          if (desc.kind === 'image' && file.size < 6 * 1024 * 1024) entry.thumb = await readThumb(file);
+          if (playable(name, file.size)) entry.url = URL.createObjectURL(file);
+          else if (desc.text && file.size < 512 * 1024) entry.content = await file.text();
+        } catch {}
+        entries.push(entry);
+      }
+    };
+
+    try { await walk(dir, '', 0); } catch (err) {
+      console.warn('directory walk stopped', err);
+    }
+    stop();
+
+    store.addRoot(rootName, { name: rootName, source: 'browser', count: entries.filter((e) => e.kind !== 'folder').length, lastIndexed: Date.now() });
+    const known = new Set(store.state.entries.map((e) => e.path));
+    const fresh = entries.filter((e) => !known.has(e.path) || e.kind === 'folder');
+    const kept = store.state.entries.filter((e) => !(e.root === rootName && e.source === 'browser'));
+    store.state.entries = kept.concat(fresh);
+    store.persist(true);
+    runSearch();
+    renderHero();
+    refreshMeta();
+    renderScopes();
+    if (state.view === 'library') renderLibrary();
+    const files = fresh.filter((e) => e.kind !== 'folder').length;
+    warmIndex();
+    ui.toast(`Indexed <b>${fmtNum(files)}</b> files from ${esc(rootName)}${entries.length >= maxFiles ? ' · capped at 25k' : ''}`, 'good', 'check');
+    if (opts.rescan) renderHistory();
+  }
+
+  /* Rescan every remembered directory handle (Chrome keeps permission). */
+  async function refreshDirectoryRoots() {
+    let count = 0;
+    for (const [name, handle] of state.fsRoots) {
+      try {
+        const perm = await handle.queryPermission({ mode: 'read' });
+        if (perm !== 'granted') continue;
+        await ingestDirectoryHandle(handle, { rescan: true });
+        count++;
+      } catch (err) { console.warn('rescan failed', name, err); }
+    }
+    return count;
   }
 
   function ingestNativeScan(folder, result) {
@@ -1674,6 +1890,7 @@
     refreshMeta();
     renderScopes();
     if (state.view === 'library') renderLibrary();
+    warmIndex();
     ui.toast(`Indexed <b>${fmtNum(mapped.length)}</b> entries from ${esc(rootName)} · ${fmtTime(result.took)}${result.truncated ? ' · truncated at limit' : ''}`, 'good', 'check');
   }
 
@@ -1733,6 +1950,7 @@
     refreshMeta();
     renderScopes();
     if (state.view === 'library') renderLibrary();
+    warmIndex();
     ui.toast(`Indexed <b>${fmtNum(fresh.length)}</b> entries from ${esc(rootName)}${list.length === maxFiles ? ' · capped at 20k' : ''}`, 'good', 'check');
   }
 
@@ -2123,6 +2341,8 @@
     state, runSearch, setView, applyQuery, openPreview, closePreview, openPalette, renderHistory,
     focusSearch: () => { if (state.view === 'ask') setView('search', { keepQuery: true, silent: true }); refs.query.focus(); },
     indexFolders, importFiles, refreshMeta, renderLibrary, boot, analyzeSmart,
+    ingestFiles: (files, label) => ingestFileList(files, label || 'Folder'),
+    refreshFolders: refreshDirectoryRoots,
   };
 
   NS.build = '2026-11-12.r1';

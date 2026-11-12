@@ -39,16 +39,44 @@ const server = http.createServer((req, res) => {
     res.writeHead(403);
     return res.end('Forbidden');
   }
-  fs.readFile(file, (err, data) => {
-    if (err) {
+  const type = TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream';
+  fs.stat(file, (err, stat) => {
+    if (err || !stat.isFile()) {
       res.writeHead(404, { 'content-type': 'text/plain' });
       return res.end('Not found');
     }
+    // Range support is what makes video and audio scrubbable in the browser:
+    // without it Chrome refuses to seek a media element.
+    const range = req.headers.range;
+    if (range) {
+      const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+      if (match) {
+        const size = stat.size;
+        let start = match[1] ? Number(match[1]) : 0;
+        let end = match[2] ? Number(match[2]) : size - 1;
+        if (Number.isNaN(start) || Number.isNaN(end) || start > end || start >= size) {
+          res.writeHead(416, { 'content-range': `bytes */${size}` });
+          return res.end();
+        }
+        end = Math.min(end, size - 1);
+        res.writeHead(206, {
+          'content-type': type,
+          'content-length': end - start + 1,
+          'content-range': `bytes ${start}-${end}/${size}`,
+          'accept-ranges': 'bytes',
+          'cache-control': 'no-cache',
+        });
+        return fs.createReadStream(file, { start, end }).pipe(res);
+      }
+    }
     res.writeHead(200, {
-      'content-type': TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream',
+      'content-type': type,
+      'content-length': stat.size,
+      'accept-ranges': 'bytes',
       'cache-control': 'no-cache',
     });
-    res.end(data);
+    if (req.method === 'HEAD') return res.end();
+    fs.createReadStream(file).pipe(res);
   });
 });
 

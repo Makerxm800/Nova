@@ -561,7 +561,9 @@
       }
     }
     const seenTags = new Set();
+    let budget = 4000;                      // never walk 50k entries for hints
     for (const entry of entries) {
+      if (budget-- <= 0 || out.length > 12) break;
       for (const tag of entry.tags || []) {
         if (seenTags.has(tag)) continue;
         const n = normalize(tag);
@@ -574,7 +576,9 @@
       if (out.length > 12) break;
     }
     const dirs = new Set();
+    budget = 4000;
     for (const entry of entries) {
+      if (budget-- <= 0 || out.length > 16) break;
       const parts = U.pathParts(entry.dir || '');
       for (const part of parts) {
         if (parts.length && dirs.has(part)) continue;
@@ -598,8 +602,36 @@
     return out.slice(0, 14);
   }
 
+  /* ------------------------- idle warm-up --------------------------------- */
+  // The first query over a fresh index pays for every string fold, regex and
+  // mask in the corpus (hundreds of ms on 50k entries). Doing that in idle
+  // slices after indexing keeps the first keystroke instant instead.
+  const warmState = new WeakSet();
+  function warm(entries, opts = {}) {
+    if (!Array.isArray(entries) || !entries.length) return Promise.resolve(0);
+    if (warmState.has(entries) && !opts.force) return Promise.resolve(0);
+    warmState.add(entries);
+    const budget = opts.budget || 5;      // ms of work per idle slice
+    let i = 0;
+    const total = entries.length;
+    return new Promise((resolve) => {
+      const idle = window.requestIdleCallback || ((fn) => setTimeout(() => fn({ timeRemaining: () => 8 }), 24));
+      const slice = (deadline) => {
+        const size = Math.min(140, total - i);   // always yield between batches
+        const end = i + size;
+        while (i < end) fields(entries[i++]);
+        if (deadline && typeof deadline.timeRemaining === 'function' && deadline.timeRemaining() < 1 && i < total) {
+          return idle(slice);
+        }
+        if (i < total) return idle(slice);
+        resolve(total);
+      };
+      idle(slice);
+    });
+  }
+
   NS.search = {
-    normalize, matchToken, scoreEntry, parse, run, highlight, suggestions,
+    normalize, matchToken, scoreEntry, parse, run, highlight, suggestions, warm,
     entryBlob, TIER, TIER_LABEL, SORTS, KIND_BY_WORD, parseSize, parseDate,
     _fields: fields,
   };

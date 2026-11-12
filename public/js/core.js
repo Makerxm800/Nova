@@ -11,8 +11,11 @@
   /* ----------------------------------------------------------------------
      Tiny DOM / utility helpers
      ---------------------------------------------------------------------- */
-  const $ = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  // Module wrappers declare their own `const { $, $$ } = NS.util`, which would
+  // collide with top-level bindings once every module is inlined into one
+  // script (the standalone build). Keep these as properties, not globals.
+  const qs = (sel, root = document) => root.querySelector(sel);
+  const qsa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
   function el(tag, attrs = {}, ...children) {
     const node = document.createElement(tag);
@@ -168,8 +171,12 @@
     return idx > 0 ? name.slice(0, idx) : name;
   }
   function parentFolder(entry) {
-    const parts = pathParts(entry.dir || pathDir(entry.path || ''));
-    return parts.length ? parts[parts.length - 1] : 'Library';
+    const dir = entry.dir || pathDir(entry.path || '');
+    const parts = pathParts(dir);
+    if (parts.length) return parts[parts.length - 1];
+    // A file sitting at the root of an indexed folder has no sub-folder of
+    // its own — show the root it belongs to instead of "Library".
+    return entry.root || entry.rootPath || 'Library';
   }
 
   function initials(name) {
@@ -222,7 +229,7 @@
   }
 
   NS.util = {
-    $, $$, el, esc, clamp, sleep, raf, debounce, throttle, uid, clampText,
+    $: qs, $$: qsa, el, esc, clamp, sleep, raf, debounce, throttle, uid, clampText,
     nf, fmtNum, fmtBytes, fmtDate, fmtTime, fmtDuration, fdate,
     pathParts, pathName, pathDir, joinPath, fileExt, trimExt, parentFolder,
     initials, hashString, downloadBlob, copyText, isTypingTarget,
@@ -255,6 +262,7 @@
     folderOpen: '<path d="M3.5 8V7.5a2 2 0 0 1 2-2h4l2 2.2h6.8a2 2 0 0 1 2 2" /><path d="M3.5 9.7h16.2a1.4 1.4 0 0 1 1.35 1.8l-1.6 6.4a2 2 0 0 1-1.95 1.5H5.5a2 2 0 0 1-2-1.9z"/>',
     file: '<path d="M6 3.5h7l5 5v12H6z"/><path d="M13 3.5v5h5"/>',
     drive: '<rect x="3.5" y="5" width="17" height="7" rx="2"/><rect x="3.5" y="12.5" width="17" height="6.5" rx="2"/><path d="M7 8.5h.01M7 15.7h.01"/>',
+    cube: '<path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m12 12 8-4.5M12 12 4 7.5M12 12v9"/>',
     layers: '<path d="m12 3.5 8.5 4.7L12 12.9 3.5 8.2z"/><path d="m4.5 12.5 7.5 4.1 7.5-4.1M4.5 16.5 12 20.6l7.5-4.1"/>',
     grid: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
     list: '<path d="M8.5 6.5h12M8.5 12h12M8.5 17.5h12"/><circle cx="4.6" cy="6.5" r=".9" fill="currentColor" stroke="none"/><circle cx="4.6" cy="12" r=".9" fill="currentColor" stroke="none"/><circle cx="4.6" cy="17.5" r=".9" fill="currentColor" stroke="none"/>',
@@ -287,6 +295,18 @@
     volume: '<path d="M4 9.5h3l4-3.5v12l-4-3.5H4z"/><path d="M15 8.5a5 5 0 0 1 0 7M17.8 6a9 9 0 0 1 0 12"/>',
     zoomIn: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2M8 11h6M11 8v6"/>',
     zoomOut: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2M8 11h6"/>',
+    volumeOff: '<path d="M4 9.5h3l4-3.5v12l-4-3.5H4z"/><path d="m15.5 9.5 4 4M19.5 9.5l-4 4"/>',
+    skipBack: '<path d="M6 5v14"/><path d="M18.5 6 9 12l9.5 6z" fill="currentColor" stroke="none"/>',
+    skipFwd: '<path d="M18 5v14"/><path d="M5.5 6 15 12 5.5 18z" fill="currentColor" stroke="none"/>',
+    repeat: '<path d="M17 3.5 20.5 7 17 10.5"/><path d="M20.5 7H7a3 3 0 0 0-3 3v1"/><path d="M7 20.5 3.5 17 7 13.5"/><path d="M3.5 17H17a3 3 0 0 0 3-3v-1"/>',
+    pip: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><rect x="11" y="11" width="8" height="6" rx="1.5" fill="currentColor" stroke="none"/>',
+    maximize: '<rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M9 9h6v6"/>',
+    music: '<circle cx="8" cy="17" r="2.6"/><circle cx="18" cy="15" r="2.6"/><path d="M10.6 17V7.5l10-2V15"/>',
+    queue: '<path d="M4 7h11M4 12h11M4 17h7"/><path d="M18 10v8"/><path d="m15.5 15.5 2.5 2.5 2.5-2.5" transform="translate(-1 -2)"/>',
+    radio: '<circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7"/><path d="M5.8 5.8a9 9 0 0 0 0 12.4M18.2 5.8a9 9 0 0 1 0 12.4"/>',
+    heart: '<path d="M12 20s-7.5-4.7-7.5-9.6A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.5 3c0 4.9-7.5 9.6-7.5 9.6z"/>',
+    cast: '<path d="M3.5 8.5V6a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M3.5 20.5a7 7 0 0 0-3.5-3.5" transform="translate(3 0)"/><path d="M3.5 17a4 4 0 0 1 4 4" transform="translate(-0.5 0)"/><rect x="3" y="17" width="1.4" height="1.4" rx=".7" fill="currentColor" stroke="none"/>',
+    gauge: '<path d="M4 17a8 8 0 1 1 16 0"/><path d="m12 17 4.2-5.4"/><circle cx="12" cy="17" r="1.4" fill="currentColor" stroke="none"/>',
     expand: '<path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>',
     shrink: '<path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>',
     download: '<path d="M12 4v11M7.5 11 12 15.5 16.5 11"/><path d="M5 19.5h14"/>',
@@ -343,6 +363,8 @@
     text:    { label: 'Text',     plural: 'Text',      icon: 'doc',     color: '#94a3b8', grad: ['#64748b', '#94a3b8'] },
     code:    { label: 'Code',     plural: 'Code',      icon: 'code',    color: '#22d3ee', grad: ['#0891b2', '#22d3ee'] },
     data:    { label: 'Data',     plural: 'Datasets',  icon: 'data',    color: '#c084fc', grad: ['#a855f7', '#7c3aed'] },
+    model:   { label: 'Model',    plural: 'Models',    icon: 'cube',    color: '#a3e635', grad: ['#84cc16', '#22d3ee'] },
+    disk:    { label: 'Disk',     plural: 'Disk images', icon: 'drive', color: '#38bdf8', grad: ['#0284c7', '#22d3ee'] },
     archive: { label: 'Archive',  plural: 'Archives',  icon: 'archive', color: '#fbbf24', grad: ['#d97706', '#fbbf24'] },
     font:    { label: 'Font',     plural: 'Fonts',     icon: 'font',    color: '#f0abfc', grad: ['#d946ef', '#a855f7'] },
     design:  { label: 'Design',   plural: 'Design',    icon: 'design',  color: '#f9a8d4', grad: ['#db2777', '#8b5cf6'] },
@@ -352,7 +374,7 @@
 
   const EXT_KIND = {};
   const add = (kind, list) => list.split(' ').forEach((e) => e && (EXT_KIND[e] = kind));
-  add('image', 'png jpg jpeg jfif gif webp avif svg bmp ico tif tiff heic heif raw cr2 cr3 nef arw dng orf');
+  add('image', 'png jpg jpeg jfif gif webp avif svg bmp ico tif tiff heic heif cr2 cr3 nef arw dng orf');
   add('video', 'mp4 m4v mov mkv avi webm wmv flv mpg mpeg mpe 3gp 3g2 ogv ts mts m2ts');
   add('audio', 'mp3 wav flac ogg oga m4a aac wma aiff aif opus mid midi amr ape');
   add('pdf', 'pdf');
@@ -362,7 +384,9 @@
   add('text', 'txt md markdown mdx log nfo readme license');
   add('code', 'js mjs cjs ts mts cts tsx jsx html htm xhtml css scss sass less styl json jsonc json5 yaml yml toml xml xsl svgz sql py pyw rb go rs java kt kts c h cpp cxx hpp hh cc cs php sh bash zsh fish ps1 psm1 bat cmd lua swift dart vue svelte astro ini cfg conf env properties gradle cmake makefile dockerfile gitignore gitattributes editorconfig patch diff rst adoc');
   add('data', 'db sqlite sqlite3 parquet avro ipynb npy npz pkl pickle h5 h5py hdf5 arrow feather orc sav dta mat');
-  add('archive', 'zip rar 7z tar gz gzip bz2 xz zst tgz tbz2 txz iso dmg pkg deb rpm jar war ear apk aab crx');
+  add('model', 'gguf ggml safetensors ckpt pt pth onnx bin pb llama mlmodel tflite hf');
+  add('disk', 'vhdx vhd vmdk qcow2 iso img dmg raw sparseimage sys vmem swap');
+  add('archive', 'zip rar 7z tar gz gzip bz2 xz zst tgz tbz2 txz pkg deb rpm jar war ear apk aab crx');
   add('font', 'ttf otf woff woff2 eot fon fnt');
   add('design', 'psd psb ai eps indd idml sketch fig xd afdesign afphoto blend fbx obj stl gltf glb 3ds max c4d');
   add('exec', 'exe msi app dll so dylib bin appimage com scr');

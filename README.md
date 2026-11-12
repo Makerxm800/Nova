@@ -7,10 +7,46 @@ field looks across **every file, folder and format** — photos, code, video, au
 PDFs, spreadsheets, archives, fonts, datasets and design files — and answers in
 milliseconds. Nothing is uploaded. There is no account, no server and no telemetry.
 
-Nova runs as a native desktop app (Electron) and also as a browser edition with no
-build step at all.
+Nova runs as a **native desktop app**, a **browser edition**, or — with zero install
+of any kind — as one **single HTML file** you double-click.
 
 ![Nova Search hero](docs/screens/01-hero.jpg)
+
+## The no-install way (recommended)
+
+Just open **`Nova Search.html`**.
+
+That one file *is* the whole app: styles, all six modules, the fonts, the logo and the
+sample media are inlined. There is no `npm install`, no build step, no local server and
+no network access of any kind. Double-click it (or use the bundled launcher for your
+OS) and it runs.
+
+| OS | Double-click |
+|---|---|
+| Windows | `Open Nova Search.bat` |
+| macOS | `Open Nova Search.command` |
+| Linux | `open-nova-search.sh` |
+
+Rebuild the single file after changing `public/`:
+
+```sh
+node scripts/build-standalone.js
+```
+
+It prints the final size and rewrites `Nova Search.html` plus the three launchers.
+
+### Indexing real folders with no install
+
+Click **Index folder** and pick any folder. Nova uses the browser's native directory
+picker, then walks the tree in place and reads names, sizes, dates and thumbnails —
+**no files are copied or uploaded**. Everything it can play (images, video, music) gets
+a real player in the preview rail, straight from your drive.
+
+Drag-and-drop works too, including dropping a whole folder onto the window.
+
+> The single file needs a Chromium-based browser (Chrome, Edge, Arc, Brave, Opera) for
+> folder access. Firefox and Safari can still search the sample library and any files
+> you drag in.
 
 ---
 
@@ -40,6 +76,30 @@ build step at all.
 ---
 
 ## Run it
+
+### Players
+
+Video gets a real transport: scrub bar with buffered-range display, play/pause,
+volume, playback speed (0.5×–2×), picture-in-picture, fullscreen and open-in-lightbox.
+Audio gets an artwork card with a **live spectrum analyser**, waveform seek bar,
+speed, repeat, mute, and a queue that walks the other audio in your results with
+prev/next.
+
+Both players decode whatever your browser can decode — MP4/MOV/WebM video,
+MP3/WAV/FLAC/OGG/M4A/AAC audio — and when a codec genuinely can't play (some MKV,
+WMV or HEVC), the card says so and offers the native-app escape hatch instead of
+failing silently.
+
+### The players
+
+Video gets a real transport: scrub bar with buffered ranges, play/pause, volume,
+speed from 0.5x to 2x, picture-in-picture, fullscreen and open-in-lightbox. Audio
+gets an artwork card with a **live spectrum analyser**, a waveform seek bar, speed,
+repeat, mute, and a queue that walks the other audio in your results with prev/next.
+
+Both play whatever the browser can decode - MP4/MOV/WebM video, MP3/WAV/FLAC/OGG/
+M4A/AAC audio. When a codec genuinely cannot play (some MKV, WMV or HEVC), the card
+says so and offers the native-player escape hatch instead of failing silently.
 
 ### Desktop app (native indexing)
 
@@ -81,14 +141,33 @@ to import files through the browser's folder picker.
 | ![Code preview](docs/screens/05-preview-code.jpg) | ![Markdown preview](docs/screens/13-preview-markdown.jpg) |
 | **Real code highlighting** in the preview rail | **Markdown rendered** with checklists and tables |
 | ![Grid view](docs/screens/06-grid-images.jpg) | ![Audio preview](docs/screens/07-preview-audio.jpg) |
-| **Grid or list**, with artwork and badges | **Audio** gets a waveform card and a synthesised demo |
+| **Grid or list**, with artwork and badges | **Audio** gets a live spectrum, waveform scrubber and a real queue |
 | ![Ask Nova](docs/screens/09-ask.jpg) | ![Library](docs/screens/08-library.jpg) |
 | **Ask Nova** turns sentences into filters | **Library** maps roots, folders and formats |
 | ![Command palette](docs/screens/04-palette.jpg) | ![Dark and light](docs/screens/10-light.jpg) |
 | **Command palette** for everything | **Light theme** that keeps the same calm |
+| ![Video player](docs/screens/18-video-player.jpg) | ![Music player](docs/screens/19-music-player.jpg) |
+| **Video transport** — scrub, speed, PiP, fullscreen | **Music player** — live spectrum, queue, repeat |
 
 More screens in [`docs/screens`](docs/screens): hero, results, grid, PDF, lightbox,
 settings, filters, the empty state and the keyboard map.
+
+### Formats that Nova recognises natively
+
+Beyond the usual documents, pictures, video and audio, Nova has first-class kinds for
+the files an "everything" search is really used for:
+
+| Kind | Extensions |
+|---|---|
+| **Models** | `gguf`, `ggml`, `safetensors`, `ckpt`, `pt`, `pth`, `onnx`, `tflite` |
+| **Disk images** | `vhdx`, `vhd`, `vmdk`, `qcow2`, `iso`, `dmg`, `img`, `sys` |
+| **Datasets** | `parquet`, `arrow`, `feather`, `h5`, `hdf5`, `npy`, `npz`, `ipynb`, `db` |
+| **Design** | `psd`, `ai`, `indd`, `sketch`, `fig`, `xd`, `blend`, `fbx`, `obj`, `stl`, `gltf` |
+| **Fonts** | `ttf`, `otf`, `woff`, `woff2`, `eot` |
+| **Archives** | `zip`, `rar`, `7z`, `tar`, `gz`, `xz`, `zst`, `deb`, `rpm`, `jar`, `apk` |
+
+Filter them with a single click in the scope rail, or with `kind:model`, `kind:disk`,
+`kind:data` and friends.
 
 ---
 
