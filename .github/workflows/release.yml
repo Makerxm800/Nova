@@ -1,4 +1,4 @@
-name: Build Nova desktop installers
+name: Build Nova Search installers
 on:
   push:
     tags: ['v*']

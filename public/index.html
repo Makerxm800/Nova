@@ -1,13 +1,476 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101116"><title>Nova Explorer</title><link rel="stylesheet" href="style.css"></head>
-<body><div class="app">
-<aside class="sidebar"><a class="brand" href="#"><span class="brand-icon">✦</span><span>NOVA<small>EXPLORER</small></span></a><button class="primary" id="upload">＋ <span>Import files</span></button><input id="fileInput" type="file" multiple hidden><nav id="nav"><div class="nav-label">LIBRARY</div><button class="nav-item active" data-view="home">⌂ <span>Home</span></button><button class="nav-item" data-view="recent">◷ <span>Recent</span></button><button class="nav-item" data-view="starred">☆ <span>Starred</span></button><button class="nav-item" data-view="trash">▤ <span>Trash</span><i id="trashCount"></i></button><div class="nav-label space">COLLECTIONS</div><button class="nav-item" data-view="images">▧ <span>Images</span></button><button class="nav-item" data-view="documents">▤ <span>Documents</span></button><button class="nav-item" data-view="audio">♫ <span>Audio</span></button></nav><section class="storage"><div class="storage-head">Storage <span id="storageNum">0 items</span></div><div class="meter"><i id="meter"></i></div><small>Local library · saved in this browser</small></section><button class="nav-item settings" id="settings">⚙ <span>Settings</span></button></aside>
-<main class="main"><header class="topbar"><div class="breadcrumbs" id="crumbs"></div><div class="top-actions"><button class="icon-btn" id="theme" title="Toggle theme">☼</button><button class="icon-btn" id="help" title="Keyboard shortcuts">?</button><div class="avatar">N</div></div></header>
-<div class="toolbar"><div class="toolbar-left"><button class="icon-btn" id="back" title="Back">←</button><button class="icon-btn" id="forward" title="Forward">→</button><button class="icon-btn" id="up" title="Up">↑</button><div class="divider"></div><div class="search"><span>⌕</span><input id="search" placeholder="Search your library..." autocomplete="off"><kbd>/</kbd></div></div><div class="toolbar-right"><button class="action-btn" id="newFolder">＋ New folder</button><button class="icon-btn view active" data-mode="grid" title="Grid view">▦</button><button class="icon-btn view" data-mode="list" title="List view">☷</button><button class="icon-btn" id="sort" title="Sort">↕</button></div></div>
-<div class="tabs" id="tabs"><button class="tab active">⌂ <span>Home</span><b>×</b></button><button id="addTab" class="add-tab">＋</button></div>
-<section class="content"><div class="welcome"><div><div class="eyebrow">YOUR SPACE, BEAUTIFULLY ORGANIZED</div><h1 id="title">Good to see you<span>.</span></h1><p id="subtitle">A little room for everything that matters.</p></div><button class="outline-btn" id="openFolder">▱ &nbsp; Open folder from PC</button></div><div id="dropzone" class="dropzone"><span>Drop files here to add them to your library</span></div><div class="section-head"><h2 id="sectionTitle">Folders <span id="folderCount"></span></h2><button class="text-btn" id="newFile">＋ New file</button></div><div id="folders" class="folder-grid"></div><div class="section-head files-heading"><h2>Files <span id="fileCount"></span></h2><div class="filters"><button class="filter active" data-filter="all">All files</button><button class="filter" data-filter="image">Images</button><button class="filter" data-filter="document">Documents</button></div></div><div id="files" class="file-grid"></div><div id="empty" class="empty" hidden><div>✧</div><b>Nothing here just yet</b><span>Import a file or create a folder to get started.</span><button class="primary" onclick="document.getElementById('fileInput').click()">＋ Import files</button></div></section>
-</main></div>
-<div class="overlay" id="quick" hidden><button class="close" data-close>×</button><button class="qprev" id="qprev">‹</button><div class="quick-card"><div class="quick-preview" id="qpreview"></div><div class="quick-info"><div><b id="qname"></b><small id="qmeta"></small></div><button id="qstar" class="icon-btn">☆</button></div><div class="filmstrip" id="filmstrip"></div></div><button class="qnext" id="qnext">›</button><div class="quick-hint">← → &nbsp; Navigate <span>ESC</span> Close</div></div>
-<div class="overlay" id="palette" hidden><div class="palette"><input id="paletteInput" placeholder="Type a command or search files..."><div id="commands"></div><small>↑↓ navigate &nbsp; ↵ select &nbsp; esc close</small></div></div>
-<div class="toast" id="toast"></div><input id="folderInput" type="file" webkitdirectory multiple hidden>
-<script src="app.js"></script></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#06070c">
+<meta name="color-scheme" content="dark light">
+<title>Nova Search — find anything, instantly</title>
+<meta name="description" content="Nova Search is a private, local-first universal file search with instant results, rich previews for every format, and a calm, modern interface.">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app" id="app" data-theme="dark" data-mode="hero" data-density="cozy">
+
+  <!-- ambient background -->
+  <div class="aurora" aria-hidden="true">
+    <i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i>
+    <i class="grid-veil"></i><i class="noise"></i>
+  </div>
+
+  <!-- ── titlebar ─────────────────────────────────────────────── -->
+  <header class="titlebar" id="titlebar">
+    <div class="tb-left">
+      <span class="tb-mark" id="tbMark"></span>
+      <span class="tb-word">NOVA<em>SEARCH</em></span>
+    </div>
+    <div class="tb-mid">
+      <span class="tb-dot"></span>
+      <span id="tbIndex">Local index ready</span>
+    </div>
+    <div class="tb-right">
+      <span class="tb-privacy" id="tbPrivacy"></span>
+      <div class="win-ctrls">
+        <button class="win-btn" data-win="min" aria-label="Minimise"></button>
+        <button class="win-btn" data-win="max" aria-label="Maximise"></button>
+        <button class="win-btn danger" data-win="close" aria-label="Close"></button>
+      </div>
+    </div>
+  </header>
+
+  <div class="shell" id="shell">
+
+    <!-- ── rail ───────────────────────────────────────────────── -->
+    <aside class="rail">
+      <button class="rail-mark" id="railHome" aria-label="Nova Search home" title="Home">  </button>
+      <nav class="rail-nav" aria-label="Primary">
+        <button class="rub" data-view="search" aria-label="Search">
+          <span class="rub-ic" data-icon="search"></span><span class="rub-tip">Search <kbd>/</kbd></span>
+        </button>
+        <button class="rub" data-view="starred" aria-label="Starred">
+          <span class="rub-ic" data-icon="star"></span><span class="rub-tip">Starred</span>
+        </button>
+        <button class="rub" data-view="recent" aria-label="Recent">
+          <span class="rub-ic" data-icon="clock"></span><span class="rub-tip">Recent</span>
+        </button>
+        <button class="rub" data-view="library" aria-label="Library">
+          <span class="rub-ic" data-icon="layers"></span><span class="rub-tip">Library</span>
+        </button>
+        <button class="rub" data-view="ask" aria-label="Ask Nova">
+          <span class="rub-ic" data-icon="sparkles"></span><span class="rub-tip">Ask Nova <i>new</i></span>
+        </button>
+      </nav>
+      <div class="rail-gap"></div>
+      <div class="rail-foot">
+        <button class="rub small" id="btnTheme" aria-label="Toggle theme">
+          <span class="rub-ic" data-icon="sun"></span><span class="rub-tip">Theme</span>
+        </button>
+        <button class="rub small" id="btnSettings" aria-label="Settings">
+          <span class="rub-ic" data-icon="settings"></span><span class="rub-tip">Settings <kbd>⌘,</kbd></span>
+        </button>
+        <button class="rub small" id="btnHelp" aria-label="Keyboard shortcuts">
+          <span class="rub-ic" data-icon="command"></span><span class="rub-tip">Shortcuts <kbd>?</kbd></span>
+        </button>
+        <div class="rail-user" title="Stored locally on this machine">N</div>
+      </div>
+    </aside>
+
+    <!-- ── stage ──────────────────────────────────────────────── -->
+    <main class="stage" id="stage">
+
+      <div class="scope-row">
+        <div class="scopes" id="scopes" role="tablist" aria-label="Search scope"></div>
+        <div class="scope-right">
+          <span class="index-state" id="indexState"><i class="pulse"></i><b>Ready</b><span id="indexCount">0 files</span></span>
+          <button class="ghost-btn" id="btnIndex">
+            <span data-icon="plus"></span><span class="gb-label">Index folder</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="deck" id="deck">
+        <div class="field" id="field">
+          <span class="field-ic" data-icon="search"></span>
+          <input id="query" type="text" placeholder="Search every file, folder and format…"
+                 autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search files" />
+          <div class="field-right">
+            <button class="smart-chip" id="smartToggle" aria-pressed="false" title="Interpret natural language">
+              <span data-icon="sparkles"></span><span>Smart</span>
+            </button>
+            <kbd class="kbd-combo" id="fieldKbd">⌘K</kbd>
+            <button class="clear-btn" id="btnClear" aria-label="Clear search" hidden><span data-icon="close"></span></button>
+          </div>
+        </div>
+        <div class="suggest" id="suggest" role="listbox" hidden></div>
+        <div class="under-field" id="underField"></div>
+      </div>
+
+      <div class="stage-body" id="stageBody">
+
+        <!-- hero -->
+        <section class="hero" id="hero">
+          <div class="hero-orbit" aria-hidden="true">
+            <div class="orbit-ring r1"></div>
+            <div class="orbit-ring r2"></div>
+            <div class="orbit-ring r3"></div>
+            <div class="hero-star" id="heroStar"></div>
+            <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span>
+          </div>
+          <p class="hero-eyebrow"><span class="live-dot"></span>Local-first · every format · zero cloud</p>
+          <h1 class="hero-title">Find <span class="grad">anything</span>.<br>Before you finish typing.</h1>
+          <p class="hero-sub">One quiet field for every file, folder and format on this machine —<br class="br-wide"> photos, code, video, archives, fonts, datasets and the rest.</p>
+          <div class="hero-actions" id="heroChips"></div>
+          <div class="format-strip" id="formatStrip"></div>
+          <div class="hero-history" id="heroHistory" hidden></div>
+          <div class="hero-stats" id="heroStats"></div>
+        </section>
+
+        <!-- results -->
+        <section class="results" id="results" hidden>
+          <div class="results-head">
+            <div class="results-title">
+              <h2 id="resultsTitle">Results</h2>
+              <span class="result-meta" id="resultMeta"></span>
+            </div>
+            <div class="results-tools">
+              <div class="seg" id="scopeSeg" hidden></div>
+              <button class="tool-btn" id="btnFilters"><span data-icon="filter"></span><span>Filters</span><i class="fcount" id="filterCount" hidden></i></button>
+              <button class="tool-btn iconable" id="btnSort"><span data-icon="sort"></span><span id="sortLabel">Relevance</span></button>
+              <div class="seg" role="group" aria-label="View">
+                <button class="seg-btn active" data-layout="list" title="List view"><span data-icon="list"></span></button>
+                <button class="seg-btn" data-layout="grid" title="Grid view"><span data-icon="grid"></span></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="kind-chips" id="kindChips"></div>
+          <div class="active-filters" id="activeFilters" hidden></div>
+
+          <div class="list-columns" id="listColumns">
+            <button class="col col-name" data-sort="name">Name <i data-icon="chevronDown"></i></button>
+            <button class="col col-loc" data-sort="kind">Location</button>
+            <button class="col col-kind" data-sort="kind">Format</button>
+            <button class="col col-size" data-sort="size">Size</button>
+            <button class="col col-date" data-sort="date">Modified</button>
+            <span class="col col-actions"></span>
+          </div>
+
+          <div class="result-scroll" id="resultScroll">
+            <div class="result-list" id="list"></div>
+            <div class="empty-state" id="emptyState" hidden>
+              <div class="empty-art" id="emptyArt"></div>
+              <h3 id="emptyTitle">No signal for that query</h3>
+              <p id="emptyText">Try a different spelling, or relax one filter.</p>
+              <div class="empty-actions" id="emptyActions"></div>
+            </div>
+          </div>
+
+          <div class="selection-bar" id="selectionBar" hidden>
+            <span class="sel-count" id="selCount">1 selected</span>
+            <button class="sel-btn" data-sel="preview"><span data-icon="eye"></span>Preview</button>
+            <button class="sel-btn" data-sel="star"><span data-icon="star"></span>Star</button>
+            <button class="sel-btn" data-sel="copy"><span data-icon="copy"></span>Copy path</button>
+            <button class="sel-btn" data-sel="reveal"><span data-icon="reveal"></span>Reveal</button>
+            <button class="sel-btn ghost" data-sel="clear">Clear</button>
+          </div>
+        </section>
+
+        <!-- library -->
+        <section class="library" id="library" hidden>
+          <div class="library-head">
+            <h2>Library</h2>
+            <p>Every indexed root, folder and snapshot — click a folder to search inside it.</p>
+          </div>
+          <div class="root-grid" id="rootGrid"></div>
+          <div class="folder-section">
+            <div class="section-title"><h3>Folders</h3><span id="folderCount"></span></div>
+            <div class="folder-grid" id="folderGrid"></div>
+          </div>
+        </section>
+
+        <!-- ask -->
+        <section class="ask" id="ask" hidden>
+          <div class="ask-wrap">
+            <div class="ask-mark" id="askMark"></div>
+            <p class="hero-eyebrow">Ask Nova</p>
+            <h2 class="ask-title">Describe what you're after.<br><span class="grad">In plain words.</span></h2>
+            <p class="ask-sub">Nova turns ordinary sentences into filters — no syntax to memorise. It runs entirely on this machine.</p>
+            <div class="ask-field">
+              <textarea id="askInput" rows="2" placeholder="e.g. big videos from iceland edited last week"></textarea>
+              <button class="ask-go" id="askGo"><span data-icon="arrowUp"></span></button>
+            </div>
+            <div class="ask-examples" id="askExamples"></div>
+            <div class="ask-result-head" id="askResultHead" hidden></div>
+            <div class="ask-chips" id="askChips" hidden></div>
+            <div class="ask-list" id="askList"></div>
+          </div>
+        </section>
+
+      </div>
+
+      <footer class="hints" id="hints">
+        <div class="hint-group">
+          <span class="hint"><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+          <span class="hint"><kbd>↵</kbd> open</span>
+          <span class="hint"><kbd>space</kbd> peek</span>
+          <span class="hint"><kbd>⌘K</kbd> commands</span>
+        </div>
+        <div class="hint-right">
+          <span class="hint privacy-hint" id="privacyHint"></span>
+          <button class="hint link" id="btnShortcuts">All shortcuts</button>
+        </div>
+      </footer>
+    </main>
+
+    <!-- ── preview panel ──────────────────────────────────────── -->
+    <aside class="preview" id="preview" aria-label="File preview" hidden>
+      <header class="pv-head">
+        <div class="pv-kind" id="pvKind"></div>
+        <div class="pv-head-actions">
+          <button class="icon-btn" id="pvStar" title="Star"><span data-icon="star"></span></button>
+          <button class="icon-btn" id="pvMore" title="More"><span data-icon="more"></span></button>
+          <button class="icon-btn" id="pvClose" title="Close preview (Esc)"><span data-icon="close"></span></button>
+        </div>
+      </header>
+      <div class="pv-scroll" id="pvScroll">
+        <div class="pv-media" id="pvMedia"></div>
+        <div class="pv-body">
+          <h2 class="pv-name" id="pvName"></h2>
+          <p class="pv-path" id="pvPath"></p>
+          <div class="pv-meta" id="pvMeta"></div>
+          <div class="pv-tags" id="pvTags"></div>
+          <div class="pv-note" id="pvNote"></div>
+        </div>
+      </div>
+      <footer class="pv-foot">
+        <button class="pv-action primary" id="pvOpen"><span data-icon="eye"></span>Open</button>
+        <button class="pv-action" id="pvReveal"><span data-icon="reveal"></span>Reveal</button>
+        <button class="pv-action icon-only" id="pvCopy" title="Copy path"><span data-icon="copy"></span></button>
+      </footer>
+    </aside>
+
+  </div>
+
+  <!-- ── drop veil ───────────────────────────────────────────────── -->
+  <div class="drop-veil" id="dropVeil">
+    <div class="drop-card">
+      <div class="drop-mark" id="dropMark"></div>
+      <b>Drop to index</b>
+      <span>Files and folders are read locally. Nothing is uploaded.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── search suggestions portal ────────────────────────────────── -->
+
+<!-- ── preview lightbox ─────────────────────────────────────────── -->
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lb-top">
+    <div class="lb-title" id="lbTitle"></div>
+    <div class="lb-tools">
+      <button class="icon-btn" id="lbZoomOut" title="Zoom out"><span data-icon="zoomOut"></span></button>
+      <span class="lb-zoom" id="lbZoom">100%</span>
+      <button class="icon-btn" id="lbZoomIn" title="Zoom in"><span data-icon="zoomIn"></span></button>
+      <button class="icon-btn" id="lbDownload" title="Download / save"><span data-icon="download"></span></button>
+      <button class="icon-btn" id="lbClose" title="Close (Esc)"><span data-icon="close"></span></button>
+    </div>
+  </div>
+  <div class="lb-stage" id="lbStage"></div>
+  <div class="lb-strip" id="lbStrip"></div>
+</div>
+
+<!-- ── command palette ──────────────────────────────────────────── -->
+<div class="overlay" id="paletteOverlay" hidden>
+  <div class="palette" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="palette-field">
+      <span data-icon="sparkles"></span>
+      <input id="paletteInput" placeholder="Type a command or search files…" autocomplete="off" spellcheck="false" />
+      <kbd>esc</kbd>
+    </div>
+    <div class="palette-body" id="paletteList"></div>
+    <div class="palette-foot">
+      <span><kbd>↑</kbd><kbd>↓</kbd> move</span>
+      <span><kbd>↵</kbd> run</span>
+      <span><kbd>⌘K</kbd> toggle</span>
+      <span class="palette-brand">NOVA</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── shortcuts sheet ──────────────────────────────────────────── -->
+<div class="overlay" id="shortcutsOverlay" hidden>
+  <div class="sheet shortcuts-sheet" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+    <header class="sheet-head">
+      <div>
+        <p class="kicker">Keyboard</p>
+        <h2>Move at the speed of thought</h2>
+      </div>
+      <button class="icon-btn sheet-close" data-close-overlay="shortcutsOverlay"><span data-icon="close"></span></button>
+    </header>
+    <div class="shortcut-grid" id="shortcutGrid"></div>
+    <footer class="sheet-foot"><span>Press <kbd>?</kbd> any time.</span><span>All processing stays on this device.</span></footer>
+  </div>
+</div>
+
+<!-- ── settings sheet ───────────────────────────────────────────── -->
+<div class="overlay" id="settingsOverlay" hidden>
+  <div class="sheet settings-sheet" role="dialog" aria-modal="true" aria-label="Settings">
+    <header class="sheet-head">
+      <div>
+        <p class="kicker">Preferences</p>
+        <h2>Make Nova yours</h2>
+      </div>
+      <button class="icon-btn sheet-close" data-close-overlay="settingsOverlay"><span data-icon="close"></span></button>
+    </header>
+    <div class="settings-body">
+      <section class="set-group">
+        <h3>Appearance</h3>
+        <div class="set-row"><div><b>Theme</b><small>Deep space or paper light.</small></div>
+          <div class="seg" id="setTheme">
+            <button class="seg-btn" data-theme-val="dark"><span data-icon="moon"></span>Dark</button>
+            <button class="seg-btn" data-theme-val="light"><span data-icon="sun"></span>Light</button>
+            <button class="seg-btn" data-theme-val="system"><span data-icon="monitor"></span>System</button>
+          </div>
+        </div>
+        <div class="set-row"><div><b>Accent</b><small>Colour of the signal.</small></div>
+          <div class="swatches" id="setAccent">
+            <button data-accent="violet" style="--sw:#8b5cf6"></button>
+            <button data-accent="cyan" style="--sw:#22d3ee"></button>
+            <button data-accent="emerald" style="--sw:#34d399"></button>
+            <button data-accent="amber" style="--sw:#fbbf24"></button>
+            <button data-accent="rose" style="--sw:#fb7185"></button>
+          </div>
+        </div>
+        <div class="set-row"><div><b>Density</b><small>How much air between results.</small></div>
+          <div class="seg" id="setDensity">
+            <button class="seg-btn" data-density-val="cozy">Cozy</button>
+            <button class="seg-btn" data-density-val="compact">Compact</button>
+          </div>
+        </div>
+        <label class="set-row"><div><b>Reduced motion</b><small>Calm every animation down.</small></div>
+          <span class="switch"><input type="checkbox" id="setMotion"><i></i></span>
+        </label>
+      </section>
+
+      <section class="set-group">
+        <h3>Search</h3>
+        <label class="set-row"><div><b>Smart language</b><small>Turn sentences into filters automatically.</small></div>
+          <span class="switch"><input type="checkbox" id="setSmart"><i></i></span>
+        </label>
+        <label class="set-row"><div><b>Fuzzy fallback</b><small>Rescue typos with loose character matching.</small></div>
+          <span class="switch"><input type="checkbox" id="setFuzzy"><i></i></span>
+        </label>
+        <label class="set-row"><div><b>Show hidden files</b><small>Include dotfiles when indexing.</small></div>
+          <span class="switch"><input type="checkbox" id="setHidden"><i></i></span>
+        </label>
+        <label class="set-row"><div><b>Remember searches</b><small>Keep a local history on this device.</small></div>
+          <span class="switch"><input type="checkbox" id="setHistory"><i></i></span>
+        </label>
+      </section>
+
+      <section class="set-group">
+        <h3>Storage &amp; privacy</h3>
+        <div class="storage-meter">
+          <div class="meter-head"><span>Illustrative library size</span><b id="storageSize">—</b></div>
+          <div class="meter"><i id="storageFill"></i></div>
+          <small id="storageText">Local metadata only — no file contents leave this device.</small>
+        </div>
+        <div class="set-actions">
+          <button class="ghost-btn" id="btnClearHistory"><span data-icon="history"></span>Clear history</button>
+          <button class="ghost-btn" id="btnResetLibrary"><span data-icon="refresh"></span>Reset demo library</button>
+        </div>
+        <p class="privacy-note"><span data-icon="shield"></span> Nova has no account, no server and no telemetry. Indexing, matching and previews all happen on this machine.</p>
+      </section>
+
+      <section class="set-group" id="rootsGroup">
+        <h3>Indexed locations</h3>
+        <div class="root-list" id="settingsRoots"></div>
+        <button class="ghost-btn wide" id="btnAddRoot"><span data-icon="plus"></span>Index a folder…</button>
+      </section>
+    </div>
+    <footer class="sheet-foot">
+      <span>Nova Search <b id="versionTag">2.0.0</b></span>
+      <button class="ghost-btn small" id="btnAbout">About &amp; credits</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ── about / credits ──────────────────────────────────────────── -->
+<div class="overlay" id="aboutOverlay" hidden>
+  <div class="sheet about-sheet" role="dialog" aria-modal="true" aria-label="About Nova Search">
+    <header class="sheet-head">
+      <div>
+        <p class="kicker">About</p>
+        <h2>Nova Search</h2>
+      </div>
+      <button class="icon-btn sheet-close" data-close-overlay="aboutOverlay"><span data-icon="close"></span></button>
+    </header>
+    <div class="about-body">
+      <div class="about-mark" id="aboutMark"></div>
+      <p>Version <b id="aboutVersion">2.0.0</b> · a local-first universal search for Windows, macOS and Linux.</p>
+      <ul>
+        <li><b>Search</b> — tiered fuzzy matching across names, folders, formats and tags, with a natural-language layer.</li>
+        <li><b>Preview</b> — images, video, audio, PDF, text, code, spreadsheets, fonts, archives and design files.</li>
+        <li><b>Privacy</b> — no server, no account, no telemetry. Metadata is stored in this profile only.</li>
+      </ul>
+      <p class="about-credit">Typefaces: Space Grotesk, Inter and JetBrains Mono, used under the SIL Open Font License. Sample artwork generated for the demo library.</p>
+    </div>
+    <footer class="sheet-foot"><span>Built for people with too many files.</span><button class="ghost-btn small" data-close-overlay="aboutOverlay">Done</button></footer>
+  </div>
+</div>
+
+<!-- ── filter popover ───────────────────────────────────────────── -->
+<div class="popover" id="filterPop" hidden>
+  <header><b>Refine results</b><button class="icon-btn tiny" id="filterClose"><span data-icon="close"></span></button></header>
+  <div class="pop-group"><label>Size</label>
+    <div class="chip-row" id="filterSize">
+      <button data-size="tiny">&lt; 100 KB</button>
+      <button data-size="small">100 KB – 10 MB</button>
+      <button data-size="big">10 – 500 MB</button>
+      <button data-size="huge">&gt; 500 MB</button>
+    </div>
+  </div>
+  <div class="pop-group"><label>Modified</label>
+    <div class="chip-row" id="filterDate">
+      <button data-date="day">Today</button>
+      <button data-date="week">This week</button>
+      <button data-date="month">This month</button>
+      <button data-date="year">This year</button>
+    </div>
+  </div>
+  <div class="pop-group"><label>Flags</label>
+    <div class="chip-row" id="filterFlags">
+      <button data-flag="starred">Starred</button>
+      <button data-flag="pinned">Pinned</button>
+      <button data-flag="thumb">Has artwork</button>
+    </div>
+  </div>
+  <footer><button class="ghost-btn small" id="filterReset">Reset</button><button class="ghost-btn small primary" id="filterApply">Done</button></footer>
+</div>
+
+<!-- ── sort popover ─────────────────────────────────────────────── -->
+<div class="popover narrow" id="sortPop" hidden>
+  <header><b>Sort by</b></header>
+  <div class="pop-list" id="sortList"></div>
+</div>
+
+<!-- ── context menu ─────────────────────────────────────────────── -->
+<div class="ctx" id="ctxMenu" hidden></div>
+
+<!-- ── toasts ───────────────────────────────────────────────────── -->
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<!-- ── shortcuts & boot ─────────────────────────────────────────── -->
+<input type="file" id="fileInput" multiple hidden>
+<input type="file" id="folderInput" webkitdirectory multiple hidden>
+<script src="js/core.js"></script>
+<script src="js/store.js"></script>
+<script src="js/search.js"></script>
+<script src="js/preview.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

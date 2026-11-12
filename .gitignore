@@ -1,0 +1,12 @@
+# dependencies & build output
+node_modules/
+dist/
+out/
+
+# app packaging (generated from public/assets/icon.svg by electron-builder)
+build/icon.png
+
+# OS noise
+.DS_Store
+Thumbs.db
+*.log
