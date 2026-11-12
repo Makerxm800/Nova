@@ -30,13 +30,6 @@ function dataUri(rel) {
 /* ------------------------------ assets ---------------------------------- */
 // Only the sample media ships inline; everything else is generated at runtime.
 const ASSET_REFS = [
-  'assets/demo/aurora.jpg',
-  'assets/demo/neon-city.jpg',
-  'assets/demo/orb.jpg',
-  'assets/demo/demo-clip.mp4',
-  'assets/demo/nova-theme-ambient.wav',
-  'assets/demo/midnight-stroll-loop.mp3',
-  'assets/examples/brand-guidelines.pdf',
   'assets/fonts/space-grotesk-latin-wght-normal.woff2',
   'assets/fonts/inter-latin-wght-normal.woff2',
   'assets/fonts/jetbrains-mono-latin-wght-normal.woff2',
@@ -69,7 +62,7 @@ css = css.replace(/url\((['"]?)([^'")]+)\1\)/g, (full, quote, ref) => {
 });
 
 /* -------------------------------- js ------------------------------------ */
-const ORDER = ['core', 'store', 'search', 'player', 'preview', 'ui', 'app'];
+const ORDER = ['core', 'store', 'search', 'player', 'bootstrap', 'preview', 'ui', 'app'];
 let js = ORDER.map((name) => {
   const src = read(path.join(pub, 'js', `${name}.js`));
   // Guard against a stray </script> inside a string breaking the inline tag.
@@ -138,38 +131,12 @@ html = html.replace('</head>', () => `${shim}\n</head>`);
 // time so markdown/HTML string templates keep working untouched.
 const storePatch = `
 <script>
-(function () {
-  const ready = () => window.Nova && window.Nova.store;
-  const apply = () => {
-    const NS = window.Nova;
-    if (!NS || !NS.store) return false;
-    // Rewrite any demo thumb/url that still points at a packaged file.
-    const fix = (e) => {
-      if (!e) return e;
-      if (e.thumb && window.__novaAsset) e.thumb = window.__novaAsset(e.thumb);
-      if (e.url && window.__novaAsset) e.url = window.__novaAsset(e.url);
-      return e;
-    };
-    NS.store.state.entries.forEach(fix);
-    const origSeed = NS.store.seedEntries;
-    if (origSeed && !origSeed.__wrapped) {
-      const wrapped = function () { return origSeed().map(fix); };
-      wrapped.__wrapped = true;
-      NS.store.seedEntries = wrapped;
-      NS.store.demoList.forEach(fix);
-    }
-    NS.store.persist && NS.store.persist(true);
-    return true;
-  };
-  if (!apply()) {
-    const timer = setInterval(() => { if (apply()) clearInterval(timer); }, 20);
-    setTimeout(() => clearInterval(timer), 6000);
-  }
-})();
+/* Nova standalone shim — nothing to remap now that the library is real files
+   from this machine. Kept so older builds of the app still boot. */
 </script>
 `;
 
-// Runs after app.js: the sample library must be corrected once it exists.
+// Runs after app.js, before the closing body.
 html = html.replace('</body>', () => `${storePatch}\n</body>`);
 
 /* --------------------------- launcher scripts --------------------------- */

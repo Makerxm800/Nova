@@ -263,6 +263,7 @@
     file: '<path d="M6 3.5h7l5 5v12H6z"/><path d="M13 3.5v5h5"/>',
     drive: '<rect x="3.5" y="5" width="17" height="7" rx="2"/><rect x="3.5" y="12.5" width="17" height="6.5" rx="2"/><path d="M7 8.5h.01M7 15.7h.01"/>',
     cube: '<path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m12 12 8-4.5M12 12 4 7.5M12 12v9"/>',
+    folderPlus: '<path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M12 11.5v5M9.5 14h5"/>',
     layers: '<path d="m12 3.5 8.5 4.7L12 12.9 3.5 8.2z"/><path d="m4.5 12.5 7.5 4.1 7.5-4.1M4.5 16.5 12 20.6l7.5-4.1"/>',
     grid: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
     list: '<path d="M8.5 6.5h12M8.5 12h12M8.5 17.5h12"/><circle cx="4.6" cy="6.5" r=".9" fill="currentColor" stroke="none"/><circle cx="4.6" cy="12" r=".9" fill="currentColor" stroke="none"/><circle cx="4.6" cy="17.5" r=".9" fill="currentColor" stroke="none"/>',

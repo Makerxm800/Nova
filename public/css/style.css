@@ -2076,3 +2076,60 @@ body.overlay-open .rub-tip { display: none !important; }
 .lb-media .np-audio { padding: 16px; }
 .lb-media .np-art { aspect-ratio: 2 / 1; max-height: 240px; }
 .lb-media .np-video video { max-height: 66vh; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   REAL MACHINE — beta tag, first-run call to action, empty hero
+   ══════════════════════════════════════════════════════════════════════════ */
+.beta-tag {
+  margin-left: 10px; padding: 2px 7px; border-radius: 999px;
+  font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: #0d0a16; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  vertical-align: middle; box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.hero-cta {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+  gap: 10px; margin: 22px auto 0; max-width: 560px;
+}
+.hero-cta .cta-primary {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 12px 22px; border-radius: 13px; font-size: 13.5px; font-weight: 600;
+  color: #0d0a16; border: 0; cursor: pointer;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 38%, transparent);
+  transition: transform .18s cubic-bezier(.2,.9,.2,1), filter .18s, box-shadow .18s;
+}
+.hero-cta .cta-primary:hover { transform: translateY(-1px) scale(1.02); filter: brightness(1.06); }
+.hero-cta .cta-primary:active { transform: scale(.98); }
+.hero-cta .cta-primary [data-icon] { width: 16px; height: 16px; }
+
+.hero-cta .cta-ghost {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 17px; border-radius: 12px; font-size: 12.5px; font-weight: 500;
+  color: var(--text-2); cursor: pointer;
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  border: 1px solid var(--line);
+  transition: background .18s, color .18s, border-color .18s;
+}
+.hero-cta .cta-ghost:hover { color: var(--text); background: var(--panel-2); border-color: color-mix(in srgb, var(--accent) 32%, transparent); }
+.hero-cta .cta-ghost [data-icon] { width: 14px; height: 14px; }
+
+.hero-cta .cta-hint {
+  flex-basis: 100%; margin: 2px 0 0; text-align: center;
+  font-size: 11px; color: var(--faint); letter-spacing: .01em;
+}
+.hero-cta.quiet { margin-top: 18px; gap: 12px; }
+.hero-cta .cta-count { font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 720px) {
+  .hero-cta { flex-direction: column; }
+  .hero-cta .cta-primary, .hero-cta .cta-ghost { width: 100%; justify-content: center; }
+}
+
+/* the hero hides its orbit once the machine has been indexed and the field is idle */
+[data-mode='hero'] .hero-cta { animation: cta-in .5s var(--ease-out) both .1s; }
+@keyframes cta-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* A single wide stat cell when there is nothing to count yet. */
+.hero-stats .stat.wide { min-width: 190px; }
+.hero-stats .stat.wide b { font-size: 15px; letter-spacing: -.01em; }

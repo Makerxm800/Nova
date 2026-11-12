@@ -101,6 +101,9 @@
     setView('search', { keepQuery: true });
     focusQuery();
     warmIndex();
+    // Real machine, real index: pick up where the last session left off.
+    NS.bootstrap?.markFirstRunDone?.();
+    setTimeout(() => NS.bootstrap?.autoStart?.(), 600);
     bindScopeWheel();
     setTimeout(syncScopeFade, 300);
     document.fonts?.ready?.then(syncScopeFade).catch(() => {});
@@ -163,26 +166,35 @@
     const kinds = new Set(entries.map((e) => e.kind));
     state.types = kinds;
     const roots = Object.values(store.state.roots).filter(Boolean);
-    const label = roots.length ? `${fmtNum(entries.length)} indexed` : `${fmtNum(entries.length)} sample files`;
+    const label = roots.length ? `${fmtNum(entries.length)} indexed` : 'nothing indexed';
     const countEl = $('#indexCount');
     if (countEl) countEl.textContent = label;
     if (refs.tbIndex) refs.tbIndex.textContent = roots.length
       ? `${fmtNum(entries.length)} entries · ${roots.length} ${roots.length === 1 ? 'location' : 'locations'}`
-      : `${fmtNum(entries.length)} sample entries · demo library`;
-    if (refs.indexState) refs.indexState.querySelector('b').textContent = roots.length ? 'Indexed' : 'Demo ready';
+      : 'no files indexed yet';
+    if (refs.indexState) refs.indexState.querySelector('b').textContent = roots.length ? 'Indexed' : 'Not indexed';
 
     // hero stats — the fourth cell reports a real median, never a single sample
     if (refs.heroStats) {
       const totalSize = entries.reduce((sum, e) => sum + (e.size || 0), 0);
       const recent = (state.recentTook || []).slice(-9).sort((a, b) => a - b);
       const median = recent.length ? recent[Math.floor(recent.length / 2)] : null;
-      const stats = [
-        { value: fmtNum(entries.length), unit: '', label: 'files indexed' },
-        { value: String(kinds.size), unit: '', label: 'formats live' },
-        { value: fmtNum(folders.size), unit: '', label: 'folders mapped' },
-        { value: median != null ? String(Math.max(1, Math.round(median))) : '—', unit: 'ms', label: 'median query' },
-      ];
-      refs.heroStats.innerHTML = stats.map((st) => `<div class="stat"><b>${st.value}${st.unit ? `<span class="unit">${st.unit}</span>` : ''}</b><span>${st.label}</span></div>`).join('');
+      // Root-level files have no sub-folder of their own; the drive they live
+      // on is still a location, so count roots as locations too.
+      const rootNames = new Set(Object.values(store.state.roots).filter(Boolean).map((r) => r.name));
+      const locations = new Set([...folders.keys(), ...rootNames]);
+      const stats = entries.length
+        ? [
+          { value: fmtNum(entries.length), unit: '', label: 'files indexed' },
+          { value: String(kinds.size), unit: '', label: 'formats live' },
+          { value: fmtNum(locations.size), unit: '', label: locations.size === 1 ? 'location' : 'locations' },
+          { value: median != null ? String(Math.max(1, Math.round(median))) : '—', unit: 'ms', label: 'median query' },
+        ]
+        : [
+          { value: '0', unit: '', label: 'files indexed' },
+          { value: NS.bootstrap ? NS.bootstrap.capacity().label : 'Local', unit: '', label: 'ready to index', wide: true },
+        ];
+      refs.heroStats.innerHTML = stats.map((st) => `<div class="stat${st.wide ? ' wide' : ''}"><b>${st.value}${st.unit ? `<span class="unit">${st.unit}</span>` : ''}</b><span>${st.label}</span></div>`).join('');
       refs.heroStats.title = `${fmtBytes(totalSize)} tracked locally`;
       refs.heroStats.querySelectorAll('.stat b').forEach((b, i) => {
         b.style.animation = 'none';
@@ -237,29 +249,73 @@
      Hero content
      ═══════════════════════════════════════════════════════════════════════ */
   function renderHero() {
+    const cap = NS.bootstrap ? NS.bootstrap.capacity() : { engine: 'drop', indexed: store.state.entries.length, detail: '' };
+    const empty = store.state.entries.length === 0;
+
+    // Quick filters only make sense once there is something to filter.
     const chips = [
-      { label: 'aurora', icon: 'sparkles', q: 'aurora' },
       { label: 'Photos', icon: 'image', q: 'kind:image' },
-      { label: 'Videos over 100 MB', icon: 'video', q: 'kind:video size:>100mb' },
-      { label: 'Edited this week', icon: 'clock', q: 'after:week' },
-      { label: 'Starred', icon: 'star', q: 'is:starred' },
-      { label: 'Ask Nova', icon: 'sparkles', q: '__ask', new: true },
+      { label: 'Music', icon: 'music', q: 'kind:audio' },
+      { label: 'Videos', icon: 'video', q: 'kind:video' },
+      { label: 'Documents', icon: 'doc', q: 'kind:doc kind:pdf' },
+      { label: 'Big files', icon: 'gauge', q: 'size:>1gb' },
+      { label: 'This week', icon: 'clock', q: 'after:week' },
     ];
     refs.heroChips.innerHTML = chips.map((chip, i) => `
-      <button class="hero-chip ${chip.new ? 'new' : ''}" data-hero="${esc(chip.q)}" style="animation-delay:${i * 45}ms">
+      <button class="hero-chip" data-hero="${esc(chip.q)}" style="animation-delay:${i * 45}ms">
         <span data-icon="${chip.icon}"></span>${esc(chip.label)}
       </button>`).join('');
     ui.paintIcons(refs.heroChips);
 
+    // The format strip doubles as the "what does it understand" answer.
     const formats = [
       ['image', 'Images'], ['video', 'Video'], ['audio', 'Audio'], ['pdf', 'PDF'], ['doc', 'Docs'],
-      ['sheet', 'Sheets'], ['slide', 'Slides'], ['code', 'Code'], ['archive', 'Archives'], ['font', 'Fonts'],
-      ['design', '3D & design'], ['data', 'Datasets'],
+      ['sheet', 'Sheets'], ['code', 'Code'], ['archive', 'Archives'], ['model', 'Models'],
+      ['disk', 'Disks'], ['font', 'Fonts'], ['data', 'Datasets'],
     ];
     refs.formatStrip.innerHTML = formats.map(([kind, label], i) => {
       const def = NS.kinds[kind];
-      return `<button class="fmt" data-fmt="${kind}" style="--fc:${def.color};animation-delay:${i * 30}ms"><i></i>${label}</button>`;
+      return `<button class="fmt" data-fmt="${kind}" style="--fc:${def.color};animation-delay:${i * 30}ms"><i></i>${esc(label)}</button>`;
     }).join('');
+
+    renderHeroCta(empty, cap);
+  }
+
+  /* The hero's primary action: index this machine, in one click. */
+  function renderHeroCta(empty, cap) {
+    let host = $('#heroCta');
+    if (!host) {
+      host = el('div', { class: 'hero-cta', id: 'heroCta' });
+      const anchor = refs.formatStrip || refs.heroChips;
+      anchor.parentNode.insertBefore(host, anchor.nextSibling);
+    }
+    const isDesktop = cap.engine === 'desktop';
+    if (empty) {
+      host.className = 'hero-cta';
+      host.innerHTML = `
+        <button class="cta-primary" data-cta="${isDesktop ? 'scan-pc' : 'index'}">
+          <span data-icon="${isDesktop ? 'drive' : 'folderPlus'}"></span>
+          ${isDesktop ? 'Index this PC' : 'Index a folder'}
+        </button>
+        <button class="cta-ghost" data-cta="import"><span data-icon="download"></span>Add files</button>
+        <p class="cta-hint">${isDesktop
+          ? 'Nova walks every drive on this machine. Nothing is uploaded.'
+          : 'Or drop a folder anywhere on this window. Nothing is uploaded.'}</p>`;
+    } else {
+      host.className = 'hero-cta quiet';
+      host.innerHTML = `
+        <button class="cta-ghost" data-cta="index"><span data-icon="plus"></span>Index another folder</button>
+        <span class="cta-count">${fmtNum(cap.indexed)} files · ${cap.roots || 1} location${(cap.roots || 1) === 1 ? '' : 's'}</span>`;
+    }
+    ui.paintIcons(host);
+    host.querySelectorAll('[data-cta]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const act = btn.dataset.cta;
+        if (act === 'index') indexFolders();
+        else if (act === 'scan-pc') NS.bootstrap.scanThisPc();
+        else if (act === 'import') refs.fileInput.click();
+      });
+    });
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -775,10 +831,24 @@
     setText('.r-date', fmtDate(entry.modified));
     const thumb = row.querySelector('.thumb');
     if (thumb) {
+      const ext = (entry.ext || def.label).slice(0, 6);
+      if (thumb.dataset.ext !== ext) thumb.dataset.ext = ext;
       const wanted = entry.thumb ? 'img' : 'svg';
       if (!thumb.firstElementChild || thumb.firstElementChild.tagName.toLowerCase() !== wanted) {
         thumb.innerHTML = thumbHTML(entry, def);
         thumb.classList.toggle('ext-thumb', !entry.thumb);
+      }
+    }
+    // The kind pill is row-recycled too: an .mp4 slot can become an .mp3.
+    const pill = row.querySelector('.r-kind-cell .pill');
+    if (pill) {
+      const label = def.label;
+      if (pill.dataset.kind !== entry.kind) {
+        pill.dataset.kind = entry.kind;
+        pill.style.setProperty('--kc', def.color);
+        pill.innerHTML = `${icon(def.icon, { size: 10 })}${esc(label)}`;
+      } else if (pill.textContent !== label) {
+        pill.textContent = label;
       }
     }
   }
@@ -986,6 +1056,26 @@
 
   function renderEmpty(run) {
     const q = state.effectiveQuery || state.query;
+
+    // Nothing indexed at all is a different situation from "no match":
+    // it needs a first action, not a search tip.
+    if (!store.state.entries.length) {
+      const cap = NS.bootstrap ? NS.bootstrap.capacity() : { engine: 'drop' };
+      const desktop = cap.engine === 'desktop';
+      refs.emptyArt.innerHTML = ui.emptyArt('search');
+      refs.emptyTitle.textContent = 'Nothing indexed yet';
+      refs.emptyText.textContent = desktop
+        ? 'Nova has not read this PC yet. Index every drive in one click — 240,000 files, names and metadata only, nothing uploaded.'
+        : 'Choose a folder to search. Nova reads names, dates and sizes in place and can play any media inside it.';
+      refs.emptyActions.innerHTML = `
+        <button class="ghost-btn primary" data-empty-scan>${icon(desktop ? 'drive' : 'folderPlus', { size: 14 })}${desktop ? 'Index this PC' : 'Index a folder'}</button>
+        <button class="ghost-btn" data-empty-import>${icon('download', { size: 14 })}Add files</button>`;
+      refs.emptyActions.querySelector('[data-empty-scan]')?.addEventListener('click', () => {
+        if (desktop) NS.bootstrap.scanThisPc(); else indexFolders();
+      });
+      refs.emptyActions.querySelector('[data-empty-import]')?.addEventListener('click', () => refs.fileInput.click());
+      return;
+    }
     const hasFilters = run.parsed.filters.active || state.chipKind || state.filters.sizes.size || state.filters.dates.size || state.filters.flags.size;
     refs.emptyArt.innerHTML = ui.emptyArt('search');
     refs.emptyTitle.textContent = state.view === 'starred' ? 'Nothing starred yet' : 'No signal for that query';
@@ -1577,16 +1667,7 @@
         <div class="rc-bar"><i style="width:${clamp((files.length / 6000) * 100, 4, 100)}%"></i></div>
       </div>`;
     }).join('');
-    const demoCard = `<div class="root-card" data-root="__demo" style="cursor:default">
-      <div class="rc-top"><span class="rc-ic" style="color:var(--accent-2);background:color-mix(in srgb,var(--accent-2) 12%,transparent);border-color:color-mix(in srgb,var(--accent-2) 25%,transparent)">${icon('sparkles', { size: 18 })}</span><div><b>Demo library</b><small>sample entries · always local</small></div></div>
-      <div class="rc-stats">
-        <div><b>${fmtNum(entries.filter((e) => e.demo).length)}</b><span>files</span></div>
-        <div><b>${fmtBytes(entries.filter((e) => e.demo).reduce((s, e) => s + (e.size || 0), 0))}</b><span>size</span></div>
-        <div><b>${new Set(entries.filter((e) => e.demo).map((e) => e.kind)).size}</b><span>formats</span></div>
-      </div>
-      <div class="rc-bar"><i style="width:34%"></i></div>
-    </div>`;
-    refs.rootGrid.innerHTML = rootCards + demoCard + `<button class="root-card add" data-root-add><span data-icon="plus"></span><span>Index a folder from this machine</span><small style="font-family:var(--font-ui);color:var(--faint);font-size:10px">${window.nova?.isDesktop ? 'Native folder picker' : 'Browser folder import'}</small></button>`;
+    refs.rootGrid.innerHTML = rootCards + `<button class="root-card add" data-root-add><span data-icon="plus"></span><span>Index a folder from this machine</span><small style="font-family:var(--font-ui);color:var(--faint);font-size:10px">${window.nova?.isDesktop ? 'Native folder picker' : 'Browser folder import'}</small></button>`;
     ui.paintIcons(refs.rootGrid);
 
     const folders = Array.from(store.folderSummary().values()).sort((a, b) => b.count - a.count).slice(0, 60);
@@ -1854,9 +1935,9 @@
   }
 
   function ingestNativeScan(folder, result) {
-    const rootName = pathName(folder) || folder;
+    const rootName = folder === 'This PC' ? 'This PC' : (pathName(folder) || folder);
     store.addRoot(folder, { name: rootName, source: 'native', count: result.entries.filter((e) => !e.isDir).length, lastIndexed: Date.now() });
-    const existing = new Set(store.state.entries.filter((e) => !e.demo).map((e) => e.path));
+    const existing = new Set(store.state.entries.map((e) => e.path));
     const mapped = [];
     for (const raw of result.entries) {
       if (existing.has(raw.path)) continue;
@@ -2116,7 +2197,17 @@
     { id: 'settings', title: 'Open settings', sub: 'Appearance, search and privacy', icon: 'settings', key: `${modKey},`, run: () => { ui.resetSettingsForm(); ui.renderRoots(rootHandlers); ui.openOverlay('settingsOverlay'); } },
     { id: 'shortcuts', title: 'Keyboard shortcuts', sub: 'The full map', icon: 'command', key: '?', run: () => ui.openOverlay('shortcutsOverlay') },
     { id: 'history', title: 'Clear search history', sub: 'Wipe local history and recent views', icon: 'history', run: () => { store.clearHistory(); ui.toast('History cleared', 'good', 'history'); } },
-    { id: 'reset', title: 'Reset demo library', sub: 'Restore the sample entries', icon: 'refresh', run: () => { store.state.entries = store.resetDemo(); store.state.pins = []; store.persist(true); runSearch(); renderHero(); refreshMeta(); ui.toast('Demo library restored', 'good', 'refresh'); } },
+    { id: 'rescan', title: 'Rescan this PC', sub: 'Re-walk every indexed drive and folder', icon: 'refresh', run: async () => {
+      if (window.nova?.isDesktop && window.nova.scanComputer) { NS.bootstrap.scanThisPc(); return; }
+      const n = await NS.bootstrap.refreshKnownFolders();
+      ui.toast(n ? `Rescanned ${n} folder${n === 1 ? '' : 's'}` : 'Index a folder first — there is nothing to rescan yet', n ? 'good' : 'info', 'refresh');
+    } },
+    { id: 'clear', title: 'Clear the index', sub: 'Forget every indexed file and folder', icon: 'trash', run: () => {
+      store.clearAll();
+      runSearch(); renderHero(); refreshMeta(); renderScopes();
+      if (state.view === 'library') renderLibrary();
+      ui.toast('Index cleared — this PC holds nothing until you index again', 'info', 'trash');
+    } },
   ];
 
   let paletteItems = [];
@@ -2342,6 +2433,12 @@
     focusSearch: () => { if (state.view === 'ask') setView('search', { keepQuery: true, silent: true }); refs.query.focus(); },
     indexFolders, importFiles, refreshMeta, renderLibrary, boot, analyzeSmart,
     ingestFiles: (files, label) => ingestFileList(files, label || 'Folder'),
+    ingestNativeScan: (label, result) => {
+      // Accept a synthetic folder label so whole-PC scans reuse the same mapper.
+      ingestNativeScan(label, result);
+      return result.entries.length;
+    },
+    scanThisPc: () => (NS.bootstrap ? NS.bootstrap.scanThisPc() : null),
     refreshFolders: refreshDirectoryRoots,
   };
 

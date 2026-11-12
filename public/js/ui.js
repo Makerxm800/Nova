@@ -220,7 +220,7 @@
     }
     const privacy = $('#tbPrivacy');
     if (privacy) {
-      privacy.innerHTML = `${icon('lock', { size: 12 })}<span>${desktop ? 'Local index' : 'Browser demo'} · nothing leaves this device</span>`;
+      privacy.innerHTML = `${icon('lock', { size: 12 })}<span>${desktop ? 'Local index' : 'On-device'} · nothing leaves this machine</span>`;
     }
     const hint = $('#privacyHint');
     if (hint) hint.innerHTML = `${icon('shield', { size: 12 })}<span>On-device indexing · no account · no telemetry</span>`;
@@ -327,11 +327,9 @@
     });
 
     $('#btnResetLibrary')?.addEventListener('click', () => {
-      store.state.entries = store.resetDemo();
-      store.state.pins = [];
-      store.persist(true);
+      store.clearAll();
       handlers.refresh?.();
-      toast('Demo library restored', 'good', 'refresh');
+      toast('Index cleared — nothing is tracked until you index again', 'info', 'trash');
     });
 
     $('#btnAddRoot')?.addEventListener('click', () => handlers.indexFolders?.());
@@ -350,7 +348,7 @@
     if (!list) return;
     const roots = Object.values(store.state.roots).filter(Boolean);
     if (!roots.length) {
-      list.innerHTML = '<div class="root-empty">No folders indexed on this machine yet.<br>Demo entries are shown until you index a folder.</div>';
+      list.innerHTML = '<div class="root-empty">Nothing indexed yet.<br>Index a folder (or this PC) and its files appear here.</div>';
       return;
     }
     list.innerHTML = roots.map((root) => `

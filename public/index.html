@@ -119,9 +119,9 @@
             <div class="hero-star" id="heroStar"></div>
             <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span>
           </div>
-          <p class="hero-eyebrow"><span class="live-dot"></span>Local-first · every format · zero cloud</p>
-          <h1 class="hero-title">Find <span class="grad">anything</span>.<br>Before you finish typing.</h1>
-          <p class="hero-sub">One quiet field for every file, folder and format on this machine —<br class="br-wide"> photos, code, video, archives, fonts, datasets and the rest.</p>
+          <p class="hero-eyebrow"><span class="live-dot"></span>On this machine · every format · nothing uploaded<span class="beta-tag">Beta</span></p>
+          <h1 class="hero-title">Everything on your PC.<br><span class="grad">Instantly.</span></h1>
+          <p class="hero-sub">One field searches every file, folder and format on the drives you index —<br class="br-wide"> photos, music, video, documents, code, archives, models and the rest.</p>
           <div class="hero-actions" id="heroChips"></div>
           <div class="format-strip" id="formatStrip"></div>
           <div class="hero-history" id="heroHistory" hidden></div>
@@ -380,7 +380,7 @@
         </div>
         <div class="set-actions">
           <button class="ghost-btn" id="btnClearHistory"><span data-icon="history"></span>Clear history</button>
-          <button class="ghost-btn" id="btnResetLibrary"><span data-icon="refresh"></span>Reset demo library</button>
+          <button class="ghost-btn danger" id="btnResetLibrary"><span data-icon="trash"></span>Clear index</button>
         </div>
         <p class="privacy-note"><span data-icon="shield"></span> Nova has no account, no server and no telemetry. Indexing, matching and previews all happen on this machine.</p>
       </section>
@@ -416,7 +416,7 @@
         <li><b>Preview</b> — images, video, audio, PDF, text, code, spreadsheets, fonts, archives and design files.</li>
         <li><b>Privacy</b> — no server, no account, no telemetry. Metadata is stored in this profile only.</li>
       </ul>
-      <p class="about-credit">Typefaces: Space Grotesk, Inter and JetBrains Mono, used under the SIL Open Font License. Sample artwork generated for the demo library.</p>
+      <p class="about-credit">Typefaces: Space Grotesk, Inter and JetBrains Mono, used under the SIL Open Font License.</p>
     </div>
     <footer class="sheet-foot"><span>Built for people with too many files.</span><button class="ghost-btn small" data-close-overlay="aboutOverlay">Done</button></footer>
   </div>
@@ -470,6 +470,7 @@
 <script src="js/store.js"></script>
 <script src="js/search.js"></script>
 <script src="js/player.js"></script>
+<script src="js/bootstrap.js"></script>
 <script src="js/preview.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/app.js"></script>

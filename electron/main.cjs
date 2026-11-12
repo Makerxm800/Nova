@@ -1,10 +1,12 @@
 'use strict';
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell, nativeImage, protocol, net } = require('electron');
 const path = require('node:path');
+const os = require('node:os');
 const fs = require('node:fs/promises');
 const fss = require('node:fs');
 
-const MAX_ENTRIES = 60000;
+const MAX_ENTRIES = 60000;      // per indexed folder
+const MAX_SCAN_ENTRIES = 240000; // whole machine
 const MAX_DEPTH = 14;
 const SKIP_DIRS = new Set([
   'node_modules', '.git', '.svn', '.hg', '$RECYCLE.BIN', 'System Volume Information',
@@ -91,6 +93,56 @@ function buildMenu() {
     { label: 'Window', submenu: [{ role: 'minimize' }, { role: 'zoom' }, { role: 'front' }] },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+/* --------------------------------------------------------------------------
+   Drives — the machine, not a folder
+   -------------------------------------------------------------------------- */
+async function listDrives() {
+  try {
+    // Electron exposes the OS drive list on Windows.
+    if (process.platform === 'win32') {
+      const letters = [];
+      for (let c = 65; c <= 90; c++) {
+        const root = `${String.fromCharCode(c)}:\\`;
+        try {
+          await fs.access(root);
+          letters.push(root);
+        } catch {}
+      }
+      if (letters.length) return letters;
+    }
+  } catch {}
+  try {
+    // macOS: /Volumes holds every mounted drive (skip the boot volume link).
+    if (process.platform === 'darwin') {
+      const vols = await fs.readdir('/Volumes');
+      const out = ['/'];
+      for (const v of vols) {
+        if (!v.startsWith('.')) out.push(path.join('/Volumes', v));
+      }
+      return out;
+    }
+  } catch {}
+  try {
+    if (process.platform === 'linux') {
+      const mounts = await fs.readFile('/proc/mounts', 'utf8');
+      const seen = new Set();
+      for (const line of mounts.split('\n')) {
+        const [dev, mount, type] = line.split(' ');
+        if (!mount || !dev) continue;
+        if (!/^\/(dev|sys|proc|run|snap|boot)/.test(mount)) continue;
+        if (!/^(ext4|ext3|xfs|btrfs|zfs|ntfs|ntfs3|exfat|vfat|fuse\..*)$/.test(type || '')) continue;
+        if (dev === 'tmpfs') continue;
+        if (seen.has(mount)) continue;
+        seen.add(mount);
+        // Skip Docker/container overlays; they are not the user's data.
+        if (/\/(var|tmp|containers)\//.test(mount)) continue;
+      }
+      if (seen.size) return [...seen];
+    }
+  } catch {}
+  return [os.homedir()];
 }
 
 /* --------------------------------------------------------------------------
@@ -219,6 +271,42 @@ app.whenReady().then(() => {
     } catch (err) {
       return { ok: false, error: String(err && err.message ? err.message : err) };
     }
+  });
+
+  ipcMain.handle('nova:list-drives', async () => listDrives());
+
+  ipcMain.handle('nova:scan-computer', async (evt, opts = {}) => {
+    const started = Date.now();
+    const drives = await listDrives();
+    const entries = [];
+    const roots = [];
+    const MAX_TOTAL = Math.min(opts.limit || MAX_SCAN_ENTRIES, MAX_SCAN_ENTRIES);
+    for (const drive of drives) {
+      if (entries.length >= MAX_TOTAL) break;
+      try {
+        const st = await fs.stat(drive);
+        if (!st.isDirectory()) continue;
+      } catch { continue; }
+      roots.push(drive);
+      try {
+        const scan = await scanFolder(drive);
+        // Cap each drive so one huge disk cannot starve a second one.
+        const room = MAX_TOTAL - entries.length;
+        entries.push(...scan.entries.slice(0, room));
+        if (evt && evt.sender) {
+          evt.sender.send('nova:scan-progress', {
+            drive, done: entries.length, total: MAX_TOTAL,
+          });
+        }
+      } catch {}
+    }
+    return {
+      ok: true,
+      roots,
+      entries: entries.map((e) => ({ ...e, source: 'native' })),
+      took: Date.now() - started,
+      truncated: entries.length >= MAX_TOTAL,
+    };
   });
 
   ipcMain.handle('nova:read-preview', async (_evt, file, opts = {}) => {

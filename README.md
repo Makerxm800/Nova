@@ -2,24 +2,28 @@
 
 **Find anything. Before you finish typing.**
 
-Nova Search is a private, local-first universal search for your computer. One quiet
-field looks across **every file, folder and format** — photos, code, video, audio,
-PDFs, spreadsheets, archives, fonts, datasets and design files — and answers in
-milliseconds. Nothing is uploaded. There is no account, no server and no telemetry.
+Nova Search is a private, local-first file search for Windows, macOS and Linux. One
+field looks across **every file on the drives you index** — photos, music, video,
+documents, code, PDFs, archives, fonts, models, disk images and the rest — and answers
+in milliseconds. Nothing is uploaded. There is no account, no server, no telemetry
+and **no sample data**: what you see is your machine.
+
+> **Status: Beta.** The search core, the media players and folder indexing are
+> working and tested. Beta here means polish is ongoing, not that it is a mockup.
 
 Nova runs as a **native desktop app**, a **browser edition**, or — with zero install
 of any kind — as one **single HTML file** you double-click.
 
-![Nova Search hero](docs/screens/01-hero.jpg)
+![Nova Search: an empty app with one action, Index a folder](docs/screens/20-first-run.jpg)
 
 ## The no-install way (recommended)
 
 Just open **`Nova Search.html`**.
 
-That one file *is* the whole app: styles, all six modules, the fonts, the logo and the
-sample media are inlined. There is no `npm install`, no build step, no local server and
-no network access of any kind. Double-click it (or use the bundled launcher for your
-OS) and it runs.
+That one file *is* the whole app: styles, every module, the fonts and the logo are
+inlined. There is no `npm install`, no build step, no local server and no network
+access of any kind. Double-click it (or use the bundled launcher for your OS) and it
+runs — then index a folder and search your real files.
 
 | OS | Double-click |
 |---|---|
@@ -35,18 +39,28 @@ node scripts/build-standalone.js
 
 It prints the final size and rewrites `Nova Search.html` plus the three launchers.
 
-### Indexing real folders with no install
+### What gets indexed
 
-Click **Index folder** and pick any folder. Nova uses the browser's native directory
-picker, then walks the tree in place and reads names, sizes, dates and thumbnails —
-**no files are copied or uploaded**. Everything it can play (images, video, music) gets
-a real player in the preview rail, straight from your drive.
+Nothing ships with the app. On first launch Nova shows a single action:
 
-Drag-and-drop works too, including dropping a whole folder onto the window.
+- **Desktop build** — **Index this PC** walks every drive letter on Windows, `/` plus
+  `/Volumes/*` on macOS, and the fixed mounts in `/proc/mounts` on Linux. Up to
+  240,000 files, then it refreshes quietly on later launches. No folder picking.
+- **Browser build** — **Index a folder** uses the File System Access API. Grant a
+  folder once and Nova remembers the handle, rescanning it in the background next
+  time. Drag-and-drop works too, including whole folders.
 
-> The single file needs a Chromium-based browser (Chrome, Edge, Arc, Brave, Opera) for
-> folder access. Firefox and Safari can still search the sample library and any files
-> you drag in.
+Only names, paths, sizes and dates are stored. File contents stay on disk and are read
+only when you open a preview.
+
+> Folder access in the single file needs a Chromium-based browser (Chrome, Edge, Arc,
+> Brave, Opera). Firefox and Safari can still search files you drag onto the window.
+
+### The interface is the index
+
+The scope rail counts what is really there — Pictures, Music, Documents, Media, Code,
+Archives and **Models** / **Disks** — and each one filters instantly. Quick chips on
+the hero jump straight to photos, music, videos, big files or this week's changes.
 
 ---
 
@@ -71,7 +85,7 @@ Drag-and-drop works too, including dropping a whole folder onto the window.
 - **Private by construction.** Indexing, matching and previews all happen on this
   machine. Metadata is stored in your local profile only.
 
-![Search results with a live preview](docs/screens/03-preview-image.jpg)
+![Searching a real indexed drive with a live preview](docs/screens/21-indexed.jpg)
 
 ---
 
@@ -110,9 +124,15 @@ npm install
 npm start
 ```
 
-Then press **Index folder** (or `⌘O` / `Ctrl O`) and choose any folder. Nova walks it
-locally, builds thumbnails for images, and lets you reveal, open and copy real paths
-through the system.
+Press **Index this PC** once and Nova enumerates every mounted drive itself — A: through
+Z: on Windows, `/` and `/Volumes/*` on macOS, the fixed mounts from `/proc/mounts` on
+Linux — then searches all of it. You can also scope it to a single folder with
+`⌘O` / `Ctrl O`. Reveal, open and copy-path all go through the real OS.
+
+> **Beta note:** drive enumeration and the native whole-PC scan live in
+> `electron/main.cjs` and ship with the desktop build, but were developed and
+> syntax-checked in a headless environment. If a drive is not listed on your machine,
+> use **Index folder** — the same indexer walks it — and please open an issue.
 
 Build installers:
 
@@ -128,9 +148,8 @@ npm run dist:linux  # AppImage
 npm run dev         # http://localhost:8000/dev/
 ```
 
-The browser edition ships with a sample library so every view is explorable
-immediately. You can also drag a folder onto the window, or use **Index folder**
-to import files through the browser's folder picker.
+The browser edition starts empty, like the desktop build. Use **Index a folder**
+(or drag one onto the window) and it searches the real files in it.
 
 ---
 
@@ -146,13 +165,19 @@ to import files through the browser's folder picker.
 | **Ask Nova** turns sentences into filters | **Library** maps roots, folders and formats |
 | ![Command palette](docs/screens/04-palette.jpg) | ![Dark and light](docs/screens/10-light.jpg) |
 | **Command palette** for everything | **Light theme** that keeps the same calm |
-| ![Video player](docs/screens/18-video-player.jpg) | ![Music player](docs/screens/19-music-player.jpg) |
+| ![Video player on a real file](docs/screens/23-video-real.jpg) | ![Music player on a real file](docs/screens/24-music-real.jpg) |
 | **Video transport** — scrub, speed, PiP, fullscreen | **Music player** — live spectrum, queue, repeat |
 
 More screens in [`docs/screens`](docs/screens): hero, results, grid, PDF, lightbox,
 settings, filters, the empty state and the keyboard map.
 
 ### Formats that Nova recognises natively
+
+Nova does not come with a fixed list of sample files — the kinds you see are whatever
+is actually on the drive. The registry below decides how each extension is *labelled*
+when it turns up; anything it has not seen still gets indexed and searched, it just
+falls into Other. So on a machine full of Photoshop files, Design fills up; on a
+machine full of models, Models does.
 
 Beyond the usual documents, pictures, video and audio, Nova has first-class kinds for
 the files an "everything" search is really used for:
@@ -209,12 +234,14 @@ public/
   index.html      the app shell
   css/style.css   the whole visual system (tokens, glass, motion)
   js/core.js      utilities, icon set, file-format registry
-  js/store.js     local persistence, demo library, roots, tags, pins
+  js/store.js     local persistence: settings, roots, tags, pins, history
   js/search.js    tiered fuzzy matcher, query language, facets, suggestions
+  js/player.js    video transport + music player (spectrum, queue, seeking)
+  js/bootstrap.js first run: index this PC, remember folders, engine capability
   js/preview.js   format renderers + lightbox
   js/ui.js        toasts, popovers, sheets, command palette chrome
   js/app.js       controller: views, results, preview, indexing, keyboard
-  assets/         logo, icon, self-hosted fonts, sample artwork and audio
+  assets/         logo, icon and self-hosted fonts
 dev/              browser edition wrapper
 scripts/          zero-dependency dev server
 docs/screens/     interface screenshots used in this README (.jpg)
@@ -228,14 +255,35 @@ first keystroke to rendered results is **under 60 ms** for typical queries.
 
 ---
 
+## Beta status
+
+**Working now, verified end to end:** indexing a real folder tree, instant search
+across every extension found on that machine, the scope rail and facet counts driven
+by real files, the video player (streaming, seek, speed, PiP, fullscreen), the music
+player (spectrum, queue, repeat, seek), image/PDF/code/markdown previews, reveal and
+open through the OS, and persistence of the index across restarts.
+
+**Known rough edges in this Beta:**
+
+- Native whole-drive enumeration is new. Browser folder indexing is the well-trodden
+  path; the desktop drive scan is the one to report bugs against.
+- Thumbnails for images read from disk do not survive a reload (the index does).
+- Folder permission handles are browser-scoped, so a different browser or a cleared
+  profile means indexing again.
+- No content search inside documents yet — names, paths, extensions and metadata only.
+
+Nothing in the app is mocked. If a view looks empty, it is because nothing has been
+indexed yet.
+
+---
+
 ## Privacy
 
 Folder contents are only read after you choose a folder. In the desktop app, files
 stay on disk; previews are streamed from your own machine. In the browser edition,
 imported files never leave the tab. Nova does not phone home.
 
-Sample artwork, the demo audio loop, the sample PDF and all icons were generated for
-this project. Typefaces: **Space Grotesk**, **Inter** and **JetBrains Mono**, used under
+The logo, app icon and interface icons were drawn for this project. Typefaces: **Space Grotesk**, **Inter** and **JetBrains Mono**, used under
 the SIL Open Font License (see `public/assets/fonts/LICENSE-OFL.txt`).
 
 ---

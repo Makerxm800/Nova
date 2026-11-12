@@ -473,8 +473,8 @@
   function describeNote(entry) {
     const d = describe(entry.name);
     if (entry.content && d.kind === 'text') return '';
-    if (entry.demo && !entry.url && (d.kind === 'video' || d.kind === 'design' || d.kind === 'archive')) {
-      return `<span style="color:var(--faint)">Sample entry from the demo library. Index a real folder to preview this format's actual contents.</span>`;
+    if (!entry.url && !entry.content && (d.kind === 'video' || d.kind === 'design' || d.kind === 'archive')) {
+      return `<span style="color:var(--faint)">This format needs the original file to preview. Open it to hand it to its native app.</span>`;
     }
     if (entry.source === 'native' && entry.size > 50 * 1024 * 1024 && d.kind === 'image') {
       return '<span style="color:var(--faint)">Large file — preview loaded on demand.</span>';
