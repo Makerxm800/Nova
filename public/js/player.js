@@ -134,29 +134,37 @@
     const hd = m.height ? `${m.height}p` : '';
     const badge = [hd, m.fps ? `${m.fps} fps` : '', m.codec || '', m.duration ? fmt(m.duration) : '']
       .filter(Boolean).join(' · ');
-    return `<div class="np" data-player="video" data-key="${key}" ${opts.compact ? 'data-compact="1"' : ''}>
-      <div class="np-video${opts.floating ? ' floating' : ''}">
-        ${src ? `<video data-media src="${esc(src)}" playsinline preload="metadata" ${entry.thumb ? `poster="${esc(entry.thumb)}"` : ''}></video>` : `
-          <div class="np-poster">${entry.thumb ? `<img src="${esc(entry.thumb)}" alt="">` : ''}
-            <span class="np-play-badge">${icon('video', { size: 22 })}</span></div>`}
-        ${src ? '<button class="np-bigplay" data-act="toggle" aria-label="Play or pause">' + icon('play', { size: 26 }) + '</button>' : ''}
-      </div>
-      <div class="np-bar">
-        <button class="np-btn np-play" data-act="toggle" title="Play / pause">${icon('play', { size: 15 })}</button>
-        <span class="np-time"><b data-cur>0:00</b><i>/</i><span data-dur>${fmt(m.duration || 0)}</span></span>
-        <div class="np-track" data-act="seek" role="slider" aria-label="Seek" tabindex="0">
-          <div class="np-buffer" data-buffer></div>
-          <div class="np-fill" data-fill></div>
-          <div class="np-knob" data-knob></div>
+    return `<div class="np np-video-shell" data-player="video" data-key="${key}" ${opts.compact ? 'data-compact="1"' : ''}>
+      <div class="np-stage">
+        <div class="np-video${opts.floating ? ' floating' : ''}">
+          ${src ? `<video data-media src="${esc(src)}" playsinline preload="metadata" ${entry.thumb ? `poster="${esc(entry.thumb)}"` : ''}></video>` : `
+            <div class="np-poster">${entry.thumb ? `<img src="${esc(entry.thumb)}" alt="">` : ''}
+              <span class="np-play-badge">${icon('video', { size: 28 })}</span></div>`}
+          ${src ? '<button class="np-bigplay" data-act="toggle" aria-label="Play or pause">' + icon('play', { size: 30 }) + '</button>' : ''}
+          ${badge ? `<span class="np-badge">${esc(badge)}</span>` : ''}
         </div>
-        <button class="np-btn" data-act="mute" title="Mute">${icon('volume', { size: 15 })}</button>
-        <input class="np-vol" data-act="vol" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume">
-        <button class="np-chip" data-act="speed" title="Playback speed">1×</button>
-        <button class="np-btn" data-act="pip" title="Picture in picture">${icon('pip', { size: 15 })}</button>
-        <button class="np-btn" data-act="full" title="Fullscreen">${icon('expand', { size: 15 })}</button>
-        ${opts.onOpen ? `<button class="np-btn" data-act="open" title="Open in lightbox">${icon('maximize', { size: 15 })}</button>` : ''}
+        <div class="np-scrim"></div>
+        <div class="np-transport">
+          <div class="np-track" data-act="seek" role="slider" aria-label="Seek" tabindex="0">
+            <div class="np-buffer" data-buffer></div>
+            <div class="np-fill" data-fill></div>
+            <div class="np-knob" data-knob></div>
+          </div>
+          <div class="np-controls">
+            <button class="np-btn np-play" data-act="toggle" title="Play / pause (Space)" aria-label="Play or pause">${icon('play', { size: 18 })}</button>
+            <span class="np-time"><b data-cur>0:00</b><i>/</i><span data-dur>${fmt(m.duration || 0)}</span></span>
+            <span class="np-spacer"></span>
+            <div class="np-volgroup">
+              <button class="np-btn" data-act="mute" title="Mute (M)" aria-label="Mute">${icon('volume', { size: 17 })}</button>
+              <input class="np-vol" data-act="vol" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume">
+            </div>
+            <button class="np-chip" data-act="speed" title="Playback speed">1×</button>
+            <button class="np-btn" data-act="pip" title="Picture in picture" aria-label="Picture in picture">${icon('pip', { size: 17 })}</button>
+            <button class="np-btn" data-act="full" title="Fullscreen (F)" aria-label="Fullscreen">${icon('expand', { size: 17 })}</button>
+            ${opts.onOpen ? `<button class="np-btn" data-act="open" title="Open full size" aria-label="Open full size">${icon('maximize', { size: 17 })}</button>` : ''}
+          </div>
+        </div>
       </div>
-      ${badge ? `<div class="np-badge">${esc(badge)}</div>` : ''}
     </div>`;
   }
 
@@ -209,6 +217,77 @@
     if (opts.queue && opts.queue.length) state.queue = opts.queue;
     wire(root, state);
     return state;
+  }
+
+  /* Fullscreen that actually works: request on the player shell so the
+     controls come with the picture, fall back to the stage, then to a CSS
+     "theater" mode when the Fullscreen API is unavailable (iframes, some
+     Linux webviews). Keeps the icon in sync either way. */
+  function toggleFullscreen(root) {
+    const shell = root.querySelector('.np-stage') || root;
+    const lb = root.closest('.lightbox');
+    const paint = () => {
+      const on = !!document.fullscreenElement
+        || shell.classList.contains('theater')
+        || (lb && lb.classList.contains('immersive'));
+      root.querySelectorAll('[data-act="full"]').forEach((b) => {
+        b.classList.toggle('on', on);
+        b.innerHTML = icon(on ? 'shrink' : 'expand', { size: 17 });
+        b.title = on ? 'Exit fullscreen (F)' : 'Fullscreen (F)';
+      });
+    };
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().finally(paint);
+      shell.classList.remove('theater');
+      if (lb) lb.classList.remove('immersive');
+      return;
+    }
+    const target = lb || shell;
+    target.requestFullscreen?.()
+      .then(paint)
+      .catch(() => {
+        target.classList.add('immersive');
+        shell.classList.add('theater');
+        NS.ui.toast('Immersive view — F or Esc to exit', 'info', 'expand');
+        paint();
+      });
+  }
+
+  /* A readable, actionable failure card instead of a one-line warning. */
+  function showFailure(root, s) {
+    if (!root || root.querySelector('.np-fail')) return;
+    const media = s && s.media;
+    const code = (media && media.error && media.error.code) || 0;
+    const ext = ((s && s.entry && s.entry.ext) || '').toUpperCase();
+    const REASONS = {
+      3: 'The file is damaged or only partly copied.',
+      4: 'This codec is not built into the app.',
+    };
+    const why = REASONS[code] || 'The browser engine could not decode it.';
+    const fail = document.createElement('div');
+    fail.className = 'np-fail';
+    fail.innerHTML = `
+      <div class="np-fail-head">${icon('info', { size: 15 })}<b>Can't play this ${esc(ext || 'file')} here</b></div>
+      <p>${esc(why)} Nova keeps the index and metadata intact — the file itself is unchanged.</p>
+      <div class="np-fail-actions">
+        ${s && s.opts && s.opts.onOpen ? `<button class="np-fail-btn primary" data-act="open">${icon('play', { size: 13 })} Open in the system player</button>` : ''}
+        <button class="np-fail-btn" data-act="reveal">${icon('folder', { size: 13 })} Show in folder</button>
+        <button class="np-fail-btn" data-act="convert">${icon('info', { size: 13 })} Why?</button>
+      </div>`;
+    root.appendChild(fail);
+    fail.addEventListener('click', (ev) => {
+      const act = ev.target.closest('[data-act]');
+      if (!act) return;
+      if (act.dataset.act === 'open' && s.opts && s.opts.onOpen) s.opts.onOpen();
+      else if (act.dataset.act === 'reveal') {
+        const e = s.entry;
+        if (window.nova?.reveal && e?.path) window.nova.reveal(e.path);
+        else NS.ui.toast('Reveal works in the desktop app', 'info', 'reveal');
+      }
+      else if (act.dataset.act === 'convert') {
+        NS.ui.toast('MKV/WMV/HEVC need system codecs. Play them in VLC or use “Open”.', 'info', 'info', 7000);
+      }
+    });
   }
 
   function wire(root, s) {
@@ -285,20 +364,43 @@
         syncPlay();
         if (s.opts && s.opts.onEnded) s.opts.onEnded(s);
       });
+      // Distinguish a real decode failure from the transient error every
+      // <video> fires while its src is being swapped (including on unmount).
       media.addEventListener('error', () => {
-        // readyState 0 + no src means "not loaded yet", not "unplayable".
-        if (!media.getAttribute('src') || media.readyState === 0) return;
-        if (!root.querySelector('.np-fail')) {
-          const fail = document.createElement('div');
-          fail.className = 'np-fail';
-          fail.innerHTML = `${icon('info', { size: 12 })} This codec can't play inside the app (some MKV, WMV or HEVC files). Use “Open” to launch it in its native player.`;
-          root.appendChild(fail);
-        }
+        const err = media.error;
+        if (!media.getAttribute('src')) return;
+        // 1 = MEDIA_ERR_ABORTED, 2 = NETWORK: usually a cancelled stream, not a codec.
+        if (err && (err.code === 1 || err.code === 2) && media.readyState < 2) return;
+        // Nothing decoded yet and the element was just torn down: ignore.
+        if (media.readyState === 0 && !err) return;
+        showFailure(root, s);
       });
+      // A stalled network read (common for big MKV over a slow disk) should
+      // retry instead of declaring the file unplayable.
+      let stalls = 0;
+      media.addEventListener('stalled', () => { stalls++; if (stalls <= 2) safeLoad(media); });
+      media.addEventListener('canplay', () => { stalls = 0; root.querySelector('.np-fail')?.remove(); });
+      // Keep the fullscreen affordance truthful whichever way the user exits.
+      const onFsChange = () => {
+        if (!document.fullscreenElement) {
+          root.querySelector('.np-stage')?.classList.remove('theater');
+          root.querySelector('.lightbox')?.classList.remove('immersive');
+        }
+        const on = !!document.fullscreenElement;
+        root.querySelectorAll('[data-act="full"]').forEach((b) => {
+          b.classList.toggle('on', on);
+          b.innerHTML = icon(on ? 'shrink' : 'expand', { size: 17 });
+        });
+      };
+      document.addEventListener('fullscreenchange', onFsChange);
       paintProgress();
       raf = requestAnimationFrame(tick);
       const oldCleanup = s.cleanup;
-      s.cleanup = () => { cancelAnimationFrame(raf); if (oldCleanup) oldCleanup(); };
+      s.cleanup = () => {
+        cancelAnimationFrame(raf);
+        document.removeEventListener('fullscreenchange', onFsChange);
+        if (oldCleanup) oldCleanup();
+      };
     }
 
     const seekTo = (clientX) => {
@@ -365,10 +467,7 @@
           media.requestPictureInPicture?.().catch(() => NS.ui.toast('Picture-in-picture unavailable here', 'warn', 'info'));
         }
       } else if (name === 'full') {
-        const box = root.querySelector('.np-video');
-        if (!box) return;
-        if (document.fullscreenElement) document.exitFullscreen?.();
-        else box.requestFullscreen?.().catch(() => {});
+        toggleFullscreen(root);
       } else if (name === 'open') {
         if (s.opts && s.opts.onOpen) s.opts.onOpen();
       } else if (name === 'prev') {
@@ -385,10 +484,18 @@
       }
     });
 
-    // Space toggles playback while the player has focus; handled locally so
-    // the global "peek" shortcut doesn't fight it.
+    // Space toggles playback, F fullscreen, M mute. Handled locally so the
+    // global "peek" shortcut does not fight the player.
     root.addEventListener('keydown', (ev) => {
-      if (ev.key === ' ' && !ev.target.closest('input')) { ev.preventDefault(); toggle(); }
+      if (ev.target.closest('input, textarea')) return;
+      if (ev.key === ' ') { ev.preventDefault(); toggle(); }
+      else if (ev.key === 'f' || ev.key === 'F') { ev.preventDefault(); if (kind === 'video') toggleFullscreen(root); }
+      else if (ev.key === 'm' || ev.key === 'M') {
+        if (!media) return;
+        media.muted = !media.muted;
+        const b = root.querySelector('[data-act="mute"]');
+        if (b) { b.classList.toggle('on', media.muted); b.innerHTML = icon(media.muted ? 'volumeOff' : 'volume', { size: 17 }); }
+      }
     }, true);
   }
 

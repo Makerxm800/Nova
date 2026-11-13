@@ -34,9 +34,15 @@
     <div class="tb-right">
       <span class="tb-privacy" id="tbPrivacy"></span>
       <div class="win-ctrls">
-        <button class="win-btn" data-win="min" aria-label="Minimise"></button>
-        <button class="win-btn" data-win="max" aria-label="Maximise"></button>
-        <button class="win-btn danger" data-win="close" aria-label="Close"></button>
+        <button class="win-btn" data-win="min" aria-label="Minimise" title="Minimise">
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M0 5h10"/></svg>
+        </button>
+        <button class="win-btn" data-win="max" aria-label="Maximise" title="Maximise">
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" aria-hidden="true"><rect x="0.5" y="0.5" width="9" height="9" rx="1"/></svg>
+        </button>
+        <button class="win-btn danger" data-win="close" aria-label="Close" title="Close">
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10"/></svg>
+        </button>
       </div>
     </div>
   </header>
@@ -58,9 +64,6 @@
         </button>
         <button class="rub" data-view="library" aria-label="Library">
           <span class="rub-ic" data-icon="layers"></span><span class="rub-tip">Library</span>
-        </button>
-        <button class="rub" data-view="ask" aria-label="Ask Nova">
-          <span class="rub-ic" data-icon="sparkles"></span><span class="rub-tip">Ask Nova <i>new</i></span>
         </button>
       </nav>
       <div class="rail-gap"></div>
@@ -191,24 +194,6 @@
           </div>
         </section>
 
-        <!-- ask -->
-        <section class="ask" id="ask" hidden>
-          <div class="ask-wrap">
-            <div class="ask-mark" id="askMark"></div>
-            <p class="hero-eyebrow">Ask Nova</p>
-            <h2 class="ask-title">Describe what you're after.<br><span class="grad">In plain words.</span></h2>
-            <p class="ask-sub">Nova turns ordinary sentences into filters — no syntax to memorise. It runs entirely on this machine.</p>
-            <div class="ask-field">
-              <textarea id="askInput" rows="2" placeholder="e.g. big videos from iceland edited last week"></textarea>
-              <button class="ask-go" id="askGo"><span data-icon="arrowUp"></span></button>
-            </div>
-            <div class="ask-examples" id="askExamples"></div>
-            <div class="ask-result-head" id="askResultHead" hidden></div>
-            <div class="ask-chips" id="askChips" hidden></div>
-            <div class="ask-list" id="askList"></div>
-          </div>
-        </section>
-
       </div>
 
       <footer class="hints" id="hints">
@@ -271,10 +256,16 @@
   <div class="lb-top">
     <div class="lb-title" id="lbTitle"></div>
     <div class="lb-tools">
-      <button class="icon-btn" id="lbZoomOut" title="Zoom out"><span data-icon="zoomOut"></span></button>
-      <span class="lb-zoom" id="lbZoom">100%</span>
-      <button class="icon-btn" id="lbZoomIn" title="Zoom in"><span data-icon="zoomIn"></span></button>
-      <button class="icon-btn" id="lbDownload" title="Download / save"><span data-icon="download"></span></button>
+      <div class="lb-zoomgroup" id="lbZoomGroup" hidden>
+        <button class="icon-btn" id="lbZoomOut" title="Zoom out (−)"><span data-icon="zoomOut"></span></button>
+        <span class="lb-zoom" id="lbZoom">100%</span>
+        <button class="icon-btn" id="lbZoomIn" title="Zoom in (+)"><span data-icon="zoomIn"></span></button>
+        <button class="icon-btn" id="lbZoomReset" title="Actual size (0)"><span data-icon="target"></span></button>
+      </div>
+      <button class="icon-btn" id="lbFullscreen" title="Fullscreen (F)"><span data-icon="expand"></span></button>
+      <button class="icon-btn" id="lbPrev" title="Previous (←)"><span data-icon="chevronLeft"></span></button>
+      <button class="icon-btn" id="lbNext" title="Next (→)"><span data-icon="chevronRight"></span></button>
+      <button class="icon-btn" id="lbDownload" title="Save a copy"><span data-icon="download"></span></button>
       <button class="icon-btn" id="lbClose" title="Close (Esc)"><span data-icon="close"></span></button>
     </div>
   </div>
