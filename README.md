@@ -11,6 +11,18 @@ and **no sample data**: what you see is your machine.
 > **Status: Beta.** The search core, the media players and folder indexing are
 > working and tested. Beta here means polish is ongoing, not that it is a mockup.
 
+### Download
+
+| Platform | Installer |
+|---|---|
+| **Windows** (x64) | [Nova-Search-Setup-2.0.0-beta.1.exe](https://github.com/Makerxm800/Nova/releases/download/v2.0.0-beta.1/Nova-Search-Setup-2.0.0-beta.1.exe) |
+| **macOS** (Intel + Apple Silicon) | [Nova-Search-2.0.0-beta.1-universal.dmg](https://github.com/Makerxm800/Nova/releases/download/v2.0.0-beta.1/Nova-Search-2.0.0-beta.1-universal.dmg) |
+| **Anything** | `Nova Search.html` from this repo — no install at all |
+
+These builds are unsigned, so Windows SmartScreen will ask you to confirm and macOS
+will need **System Settings → Privacy & Security → Open Anyway** the first time.
+Signing certificates cost money; the Beta does not have them yet.
+
 Nova runs as a **native desktop app**, a **browser edition**, or — with zero install
 of any kind — as one **single HTML file** you double-click.
 

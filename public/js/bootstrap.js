@@ -93,8 +93,15 @@
     if (engine() === 'desktop') {
       const roots = Object.keys(store.state.roots || {}).filter((k) => store.state.roots[k]);
       if (!roots.length) { await scanThisPc(); return; }
-      // Already indexed once: refresh quietly in the background.
-      try { await window.nova.scanComputer?.({ quiet: true }); } catch {}
+      // Already indexed once: refresh quietly in the background. The result has
+      // to be ingested or the scan is wasted (and never repairs a trimmed index).
+      try {
+        const result = await window.nova.scanComputer?.({ quiet: true });
+        if (result && result.ok && result.entries && result.entries.length) {
+          NS.app.ingestNativeScan?.('This PC', result);
+          markFirstRunDone();
+        }
+      } catch {}
       return;
     }
     if (engine() === 'directory') {
