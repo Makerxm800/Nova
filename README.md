@@ -15,8 +15,8 @@ and **no sample data**: what you see is your machine.
 
 | Platform | Installer |
 |---|---|
-| **Windows** (x64) | [Nova-Search-Setup-2.0.0-beta.1.exe](https://github.com/Makerxm800/Nova/releases/download/v2.0.0-beta.1/Nova-Search-Setup-2.0.0-beta.1.exe) |
-| **macOS** (Intel + Apple Silicon) | [Nova-Search-2.0.0-beta.1-universal.dmg](https://github.com/Makerxm800/Nova/releases/download/v2.0.0-beta.1/Nova-Search-2.0.0-beta.1-universal.dmg) |
+| **Windows** (x64) | [Nova-Search-Setup-2.0.0-beta.2.exe](https://github.com/Makerxm800/Nova/releases/download/v2.0.0-beta.2/Nova-Search-Setup-2.0.0-beta.2.exe) |
+| **macOS** (Intel + Apple Silicon) | [Nova-Search-2.0.0-beta.2-universal.dmg](https://github.com/Makerxm800/Nova/releases/download/v2.0.0-beta.2/Nova-Search-2.0.0-beta.2-universal.dmg) |
 | **Anything** | `Nova Search.html` from this repo — no install at all |
 
 These builds are unsigned, so Windows SmartScreen will ask you to confirm and macOS

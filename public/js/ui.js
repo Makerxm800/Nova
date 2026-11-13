@@ -231,7 +231,6 @@
     { group: 'Search', items: [
       ['Focus search', ['/']],
       ['Command palette', ['⌘', 'K']],
-      ['Ask Nova', ['⇧', '⌘', 'K']],
       ['Clear search', ['esc']],
       ['Next suggestion', ['↓']],
     ] },

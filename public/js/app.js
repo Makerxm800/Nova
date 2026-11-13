@@ -1,7 +1,7 @@
 /* =========================================================================
    NOVA SEARCH — app.js
    Application controller: views, search loop, results, preview panel,
-   library, Ask Nova, indexing bridges and keyboard map.
+   library, indexing bridges and keyboard map.
    ========================================================================= */
 (function () {
   'use strict';
