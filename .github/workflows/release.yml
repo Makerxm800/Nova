@@ -38,6 +38,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      # The notes file lives in the repo, so it has to be checked out or
+      # body_path silently resolves to nothing and the release body ships empty.
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: release-assets
@@ -45,7 +48,7 @@ jobs:
       - name: Publish installers
         uses: softprops/action-gh-release@v2
         with:
-          name: Nova Search 2.0.0 Beta 1
+          name: Nova Search 2.0.0 Beta 2
           body_path: docs/release-notes.md
           prerelease: true
           files: release-assets/*
