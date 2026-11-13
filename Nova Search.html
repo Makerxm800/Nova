@@ -72,7 +72,7 @@
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
   --row-h: 58px;
   --rail-w: 76px;
-  --pv-w: 432px;
+  --pv-w: 468px;
   --glow-strength: 1;
 }
 
@@ -265,17 +265,22 @@ kbd {
 .tb-right { display: flex; align-items: center; gap: 12px; }
 .tb-privacy { display: flex; align-items: center; gap: 5px; color: var(--faint); font-size: 10px; }
 .tb-privacy svg { width: 12px; height: 12px; }
-.win-ctrls { display: flex; gap: 7px; padding-left: 4px; }
+/* Windows 11 caption buttons: full-height hit areas, hairline hover fills.
+   Deliberately not macOS traffic lights — this app is Windows-first. */
+.win-ctrls { display: flex; align-self: stretch; margin-right: -6px; }
 .win-btn {
-  width: 12px; height: 12px; border-radius: 50%;
-  background: var(--line-2);
-  transition: background 0.2s, transform 0.2s var(--ease-spring);
+  width: 46px; height: 100%; border-radius: 0;
+  display: grid; place-items: center;
+  color: var(--text-2); background: transparent;
+  transition: background .12s ease, color .12s ease;
 }
-.win-btn:hover { transform: scale(1.15); }
-.win-btn[data-win='min']:hover { background: var(--warn); }
-.win-btn[data-win='max']:hover { background: var(--good); }
-.win-btn.danger { background: rgba(251, 113, 133, 0.55); }
-.win-btn.danger:hover { background: var(--danger); }
+.win-btn svg { width: 10px; height: 10px; stroke-width: 1.15; }
+.win-btn:hover { background: rgba(255, 255, 255, .10); color: #fff; }
+.win-btn:active { background: rgba(255, 255, 255, .16); }
+.win-btn.danger:hover { background: #c42b1c; color: #fff; }
+.win-btn.danger:active { background: #b02a1b; }
+[data-theme='light'] .win-btn:hover { background: rgba(0, 0, 0, .07); color: var(--text); }
+[data-theme='light'] .win-btn.danger:hover { background: #c42b1c; color: #fff; }
 
 /* ── shell layout ──────────────────────────────────────────────────────── */
 .shell {
@@ -1218,62 +1223,6 @@ kbd {
 .fc-text b { display: block; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fc-text small { display: block; font-size: 10px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ── ask ───────────────────────────────────────────────────────────────── */
-.ask { display: flex; justify-content: center; animation: fade-up 0.5s var(--ease-out); }
-.ask[hidden] { display: none; }
-.ask-wrap { width: min(720px, 100%); text-align: center; padding: 8px 0 20px; }
-.ask-mark { width: 62px; height: 62px; margin: 0 auto 18px; animation: star-breathe 6s var(--ease) infinite; filter: drop-shadow(0 0 24px var(--glow)); }
-.ask-title { font-family: var(--font-display); font-size: clamp(28px, 3.6vw, 40px); font-weight: 600; letter-spacing: -0.035em; line-height: 1.08; margin: 14px 0 12px; }
-.ask-sub { color: var(--muted); font-size: 13px; max-width: 460px; margin: 0 auto 22px; }
-.ask-field {
-  display: flex; align-items: flex-end; gap: 10px;
-  padding: 14px 14px 14px 18px;
-  border-radius: 18px;
-  border: 1px solid var(--line-2);
-  background: var(--panel);
-  backdrop-filter: blur(16px);
-  box-shadow: 0 20px 50px -30px #000d;
-  transition: border-color 0.25s, box-shadow 0.3s;
-  text-align: left;
-}
-.ask-field:focus-within { border-color: var(--accent-line); box-shadow: 0 0 0 4px var(--accent-soft), 0 20px 50px -30px #000d; }
-.ask-field textarea {
-  flex: 1; border: 0; background: none; resize: none;
-  font-family: var(--font-display); font-size: 16px; line-height: 1.5;
-  color: var(--text);
-  max-height: 140px;
-}
-.ask-field textarea::placeholder { color: var(--faint); }
-.ask-go {
-  width: 38px; height: 38px; flex: 0 0 38px;
-  border-radius: 12px;
-  display: grid; place-items: center;
-  background: linear-gradient(140deg, var(--accent-2), var(--accent));
-  color: #0b0713;
-  box-shadow: 0 10px 24px -10px var(--glow);
-  transition: transform 0.2s var(--ease-spring), filter 0.2s;
-}
-.ask-go [data-icon] { width: 18px; height: 18px; }
-.ask-go:hover { transform: translateY(-2px) scale(1.03); filter: brightness(1.08); }
-.ask-examples { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 16px; }
-.ask-ex {
-  padding: 6px 11px; border-radius: 99px;
-  border: 1px solid var(--line);
-  font-size: 11.5px; color: var(--muted);
-  transition: all 0.18s;
-  animation: fade-up 0.4s var(--ease-out) both;
-}
-.ask-ex:hover { color: var(--text); border-color: var(--accent-line); background: var(--accent-soft); }
-.ask-result-head { text-align: left; font-size: 12px; color: var(--muted); margin: 26px 0 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.ask-result-head b { color: var(--text); }
-.ask-result-head .uf-filter { font-size: 10px; }
-.ask-chips { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-start; margin-bottom: 12px; animation: fade-up 0.3s var(--ease-out) both; }
-.ask-chips .kind-chip { animation: none; }
-.ask-list { display: flex; flex-direction: column; gap: 2px; text-align: left; }
-.ask-list .row { grid-template-columns: minmax(0, 1fr) 160px 82px; }
-.ask-list .r-kind-cell, .ask-list .r-date, .ask-list .r-actions { display: none; }
-.ask-list .row.active { transform: translateX(3px); }
-
 /* ── hints ─────────────────────────────────────────────────────────────── */
 .hints {
   display: flex; align-items: center; justify-content: space-between;
@@ -1348,9 +1297,10 @@ kbd {
   border: 1px solid var(--line);
   background: var(--panel);
   min-height: 130px;
-  display: grid; place-items: center;
   margin-bottom: 16px;
 }
+/* Single-player surfaces fill the rail; centring belongs to the art tile. */
+.pv-media > .np, .pv-media .pv-media-wrap, .pv-media > .pv-art { width: 100%; }
 .pv-media .pv-art {
   position: relative;
   width: 100%; aspect-ratio: 16 / 10;
@@ -1436,6 +1386,8 @@ kbd {
 .lb-title { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lb-title small { display: block; font-family: var(--font-mono); font-size: 10px; color: var(--faint); font-weight: 400; margin-top: 2px; }
 .lb-tools { display: flex; align-items: center; gap: 4px; }
+.lb-zoomgroup { display: flex; align-items: center; gap: 2px; margin-right: 6px; padding-right: 8px; border-right: 1px solid var(--line-2); }
+.lb-zoomgroup[hidden] { display: none; }
 .lb-zoom { font-family: var(--font-mono); font-size: 11px; color: var(--muted); min-width: 42px; text-align: center; }
 .lb-stage { flex: 1; min-height: 0; display: grid; place-items: center; padding: 0 22px 12px; overflow: auto; }
 .lb-stage img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; transition: transform 0.02s linear; box-shadow: 0 40px 100px -40px #000; }
@@ -1758,7 +1710,6 @@ kbd {
   .ghost-btn { padding: 8px 10px; }
   .result-list .r-loc, .list-columns .col-loc { display: none; }
   .row, .list-columns { grid-template-columns: minmax(0, 1fr) 100px 78px 88px 40px; }
-  .ask-list .row { grid-template-columns: minmax(0, 1fr) 150px 74px; }
 }
 @media (max-width: 960px) {
   :root { --pv-w: min(420px, 92vw); }
@@ -1861,12 +1812,9 @@ kbd {
 }
 [data-theme='light'] .preview.floating { background: rgba(252, 252, 255, 0.99); }
 
-/* library + ask scroll */
-[data-mode='library'] .stage-body, [data-mode='ask'] .stage-body { overflow-y: auto; }
-[data-mode='ask'] .stage-body { justify-content: center; }
+/* library scroll */
+[data-mode='library'] .stage-body { overflow-y: auto; }
 
-/* empty-state in ask list */
-.ask-list .empty-state { padding: 36px 10px; }
 
 /* text selection in code preview */
 .pv-note pre, .lb-text pre { tab-size: 2; }
@@ -1940,94 +1888,156 @@ body.overlay-open .rub-tip { display: none !important; }
 }
 
 /* ── video ─────────────────────────────────────────────────────────────── */
-.np[data-player="video"] { gap: 0; background: #05060a; border: 1px solid var(--line); overflow: hidden; }
-.np-video { position: relative; background: radial-gradient(120% 90% at 50% 0%, #141726, #05060a); }
-.np-video video { display: block; width: 100%; max-height: 320px; object-fit: contain; background: #000; }
-.np-poster { position: relative; display: grid; place-items: center; }
-.np-poster img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; opacity: .78; }
+/* A real player surface: video fills the stage, the transport floats over it
+   on a scrim, and everything is sized for a mouse at 1512×950 — not a
+   thumbnail toolbar. Controls are 34px hit areas and appear larger on hover. */
+.np[data-player='video'] { gap: 0; background: #05060a; border: 1px solid var(--line); overflow: hidden; }
+.np-video-shell { border-radius: var(--r-lg); background: #04050a; }
+
+.np-stage {
+  position: relative;
+  background: radial-gradient(120% 90% at 50% 0%, #141726, #04050a 72%);
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.np-video { position: relative; display: grid; place-items: center; min-height: 180px; }
+.np-video video {
+  display: block; width: 100%; max-height: 58vh;
+  aspect-ratio: 16 / 9; object-fit: contain; background: #000;
+}
+.np-poster { position: relative; display: grid; place-items: center; width: 100%; }
+.np-poster img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; opacity: .72; }
 .np-play-badge {
   position: absolute; inset: 0; display: grid; place-items: center; color: #fff;
   background: radial-gradient(circle at 50% 60%, #0009, transparent 72%);
 }
 .np-bigplay {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(1);
-  width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center;
-  color: #fff; background: #0b0c12d9; border: 1px solid #ffffff33;
-  backdrop-filter: blur(10px); cursor: pointer;
-  transition: transform .18s cubic-bezier(.2,.9,.2,1), opacity .2s, background .2s;
-  box-shadow: 0 10px 30px #00000066;
+  width: 74px; height: 74px; border-radius: 50%; display: grid; place-items: center;
+  color: #fff; background: #0b0c12cc; border: 1px solid #ffffff2e;
+  backdrop-filter: blur(14px); cursor: pointer;
+  transition: transform .2s cubic-bezier(.2,.9,.2,1), opacity .22s, background .2s;
+  box-shadow: 0 16px 44px #00000080, inset 0 1px 0 #ffffff1f;
 }
-.np-bigplay:hover { transform: translate(-50%, -50%) scale(1.07); background: #13152ad9; }
-.np-bigplay.gone { opacity: 0; pointer-events: none; transform: translate(-50%, -50%) scale(.86); }
+.np-bigplay:hover { transform: translate(-50%, -50%) scale(1.08); background: #14162bd9; }
+.np-bigplay.gone { opacity: 0; pointer-events: none; transform: translate(-50%, -50%) scale(.82); }
 .np-video video::-webkit-media-controls { display: none !important; }
 
-.np-bar {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 10px; background: #080910f2; border-top: 1px solid #ffffff12;
+/* scrim + floating transport */
+.np-scrim {
+  position: absolute; inset: auto 0 0; height: 42%; pointer-events: none;
+  background: linear-gradient(to top, #04050af2 12%, #04050a80 55%, transparent);
+  opacity: 1; transition: opacity .25s ease;
 }
-.np[data-compact] .np-bar { padding: 7px 9px; }
-.np-btn {
-  flex: none; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
-  color: #cfd3e4; background: transparent; border: 0; cursor: pointer;
-  transition: background .16s, color .16s, transform .16s;
+.np-transport {
+  position: absolute; inset: auto 0 0; padding: 10px 14px 12px;
+  display: flex; flex-direction: column; gap: 6px;
+  transition: opacity .25s ease, transform .25s ease;
 }
-.np-btn:hover { background: #ffffff14; color: #fff; }
-.np-btn:active { transform: scale(.94); }
-.np-btn.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); }
-.np-play {
-  background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #0b0713;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 45%, transparent);
-}
-.np-play:hover { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #0b0713; filter: brightness(1.07); }
-.np-time { display: flex; align-items: baseline; gap: 4px; font-family: var(--font-mono); font-size: 10px; color: #8d93ab; flex: none; }
-.np-time b { color: #e7e9f5; font-weight: 500; }
-.np-time i { font-style: normal; opacity: .5; }
+.np-video-shell:not(:hover):not(.playing) .np-transport { opacity: .92; }
+.np-controls { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; min-width: 0; }
+/* Narrow rails: the volume slider is the only thing allowed to shrink. */
+.np-controls .np-btn, .np-controls .np-chip { flex: none; }
+.np-spacer { flex: 1 1 auto; }
+.np-volgroup { display: flex; align-items: center; gap: 2px; }
 
+/* seek bar: taller target, glow on hover, always visible knob while playing */
 .np-track {
-  position: relative; flex: 1 1 60px; min-width: 48px; height: 18px;
-  cursor: pointer; touch-action: none;
-  display: flex; align-items: center;
+  position: relative; flex: 1 1 60px; min-width: 48px; height: 22px;
+  cursor: pointer; touch-action: none; display: flex; align-items: center;
 }
 .np-track::before {
-  content: ''; position: absolute; inset-inline: 0; height: 4px; border-radius: 999px;
-  background: #ffffff1f;
+  content: ''; position: absolute; inset-inline: 0; height: 5px; border-radius: 999px;
+  background: #ffffff26; transition: height .14s ease;
 }
-.np-track.big { height: 26px; margin: 2px 0; width: 100%; flex: none; }
-.np-track.big::before { height: 5px; }
+.np-track:hover::before { height: 7px; }
+.np-track.big { height: 28px; margin: 2px 0; width: 100%; flex: none; }
+.np-track.big::before { height: 6px; }
 .np-buffer, .np-fill {
-  position: absolute; left: 0; right: auto; height: 4px; border-radius: 999px;
-  pointer-events: none; max-width: 100%;
+  position: absolute; left: 0; right: auto; height: 5px; border-radius: 999px;
+  pointer-events: none; max-width: 100%; transition: height .14s ease;
 }
+.np-track:hover .np-buffer, .np-track:hover .np-fill { height: 7px; }
 .np-track::before { pointer-events: none; }
-.np-track.big .np-buffer, .np-track.big .np-fill { height: 5px; }
-.np-buffer { background: #ffffff2e; width: 0; }
-.np-fill { background: linear-gradient(90deg, var(--accent), var(--accent-2)); width: 0; box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 55%, transparent); }
+.np-track.big .np-buffer, .np-track.big .np-fill { height: 6px; }
+.np-buffer { background: #ffffff33; width: 0; }
+.np-fill { background: linear-gradient(90deg, var(--accent), var(--accent-2)); width: 0; box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 60%, transparent); }
 .np-knob {
-  position: absolute; left: 0; width: 11px; height: 11px; border-radius: 50%; background: #fff;
+  position: absolute; left: 0; width: 13px; height: 13px; border-radius: 50%; background: #fff;
   transform: translateX(-50%); pointer-events: none; opacity: 0;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
-  transition: opacity .16s;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 32%, transparent);
+  transition: opacity .16s, transform .16s;
 }
 .np-track:hover .np-knob, .np-track:focus-visible .np-knob, .np.playing .np-knob { opacity: 1; }
-.np-vol { width: 54px; flex: none; accent-color: var(--accent); height: 18px; cursor: pointer; }
+.np-track:hover .np-knob { transform: translateX(-50%) scale(1.12); }
+
+/* buttons: comfortable targets, clearer states */
+.np-btn {
+  flex: none; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center;
+  color: #d6daea; background: transparent; border: 0; cursor: pointer;
+  transition: background .15s, color .15s, transform .15s;
+}
+.np[data-compact] .np-btn { width: 34px; height: 34px; }
+.np-btn:hover { background: #ffffff1a; color: #fff; }
+.np-btn:active { transform: scale(.93); }
+.np-btn.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.np-play {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #0b0713;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 42%, transparent);
+}
+.np-play:hover { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #0b0713; filter: brightness(1.08); }
+.np-time { display: flex; align-items: baseline; gap: 4px; font-family: var(--font-mono); font-size: 11.5px; color: #969cb4; flex: none; }
+.np-time b { color: #f0f2fa; font-weight: 500; }
+.np-time i { font-style: normal; opacity: .45; }
+.np-vol { width: 72px; flex: 0 1 72px; min-width: 34px; accent-color: var(--accent); height: 20px; cursor: pointer; }
+.np-volgroup { flex: 0 1 auto; min-width: 0; }
 .np-chip {
-  flex: none; height: 24px; min-width: 34px; padding: 0 7px; border-radius: 7px;
-  font-size: 10px; font-weight: 600; font-family: var(--font-mono);
-  color: #cfd3e4; background: #ffffff10; border: 1px solid #ffffff14; cursor: pointer;
-  transition: background .16s, color .16s;
+  flex: none; height: 30px; min-width: 42px; padding: 0 10px; border-radius: 8px;
+  font-size: 11px; font-weight: 600; font-family: var(--font-mono);
+  color: #d6daea; background: #ffffff12; border: 1px solid #ffffff1a; cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
 }
-.np-chip:hover { background: #ffffff1c; color: #fff; }
-.np-chip.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.np-chip:hover { background: #ffffff20; color: #fff; }
+.np-chip.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 42%, transparent); }
 .np-badge {
-  position: absolute; left: 10px; bottom: 52px; font-size: 9.5px; font-family: var(--font-mono);
-  color: #fff; background: #0b0c12b8; padding: 3px 7px; border-radius: 5px;
-  backdrop-filter: blur(6px); pointer-events: none;
+  position: absolute; left: 12px; top: 12px; font-size: 10px; font-family: var(--font-mono);
+  color: #fff; background: #0b0c12c4; padding: 4px 8px; border-radius: 6px;
+  backdrop-filter: blur(8px); pointer-events: none; letter-spacing: .02em;
+  border: 1px solid #ffffff14;
 }
+
+/* fullscreen / theater */
+.np-stage:fullscreen { display: grid; place-items: center; background: #000; border-radius: 0; }
+.np-stage:fullscreen .np-video { width: 100%; }
+.np-stage:fullscreen video { max-height: 100vh; aspect-ratio: auto; }
+.np-stage.theater {
+  position: fixed; inset: 0; z-index: 9999; border-radius: 0;
+  display: grid; place-items: center; background: #000;
+}
+.np-stage.theater video { max-height: 100vh; aspect-ratio: auto; }
+.np-stage.theater .np-transport { padding: 16px 28px 22px; }
+
+/* failure card */
 .np-fail {
-  display: flex; gap: 6px; align-items: flex-start; padding: 8px 10px;
-  font-size: 10.5px; line-height: 1.5; color: #fca5a5; background: #f8717114;
+  margin: 0; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
+  font-size: 12px; line-height: 1.5; color: #fecdd3; background: #1b0d12;
   border-top: 1px solid #f8717133;
 }
+.np-fail-head { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #ffe4e6; }
+.np-fail-head b { font-weight: 600; }
+.np-fail p { margin: 0; color: #fda4af; opacity: .92; }
+.np-fail-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+.np-fail-btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
+  border-radius: 8px; font-size: 11.5px; font-weight: 500; cursor: pointer;
+  color: #ffe4e6; background: #ffffff10; border: 1px solid #ffffff1f;
+  transition: background .15s, border-color .15s;
+}
+.np-fail-btn:hover { background: #ffffff1c; border-color: #ffffff33; }
+.np-fail-btn.primary { background: #e11d48d9; border-color: #fb718580; color: #fff; }
+.np-fail-btn.primary:hover { background: #f43f5e; }
 
 /* ── music ─────────────────────────────────────────────────────────────── */
 .np-audio {
@@ -2038,10 +2048,10 @@ body.overlay-open .rub-tip { display: none !important; }
     var(--panel-2);
   border: 1px solid var(--line);
 }
-.np-spectrum { display: block; width: 100%; height: 46px; opacity: .55; pointer-events: none; }
+.np-spectrum { display: block; width: 100%; height: 58px; opacity: .6; pointer-events: none; }
 .np-audio.playing .np-spectrum { opacity: .9; }
 .np-art {
-  position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: 150px; border-radius: 11px;
+  position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: 190px; border-radius: 12px;
   overflow: hidden; display: grid; place-items: center;
   background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 55%, #0b0c14), color-mix(in srgb, var(--accent-2) 45%, #0b0c14));
 }
@@ -2052,7 +2062,7 @@ body.overlay-open .rub-tip { display: none !important; }
   background: radial-gradient(circle at 50% 120%, #0000 40%, #00000055 100%);
 }
 .np-art-play {
-  position: absolute; right: 10px; bottom: 10px; width: 40px; height: 40px; border-radius: 50%;
+  position: absolute; right: 12px; bottom: 12px; width: 46px; height: 46px; border-radius: 50%;
   display: grid; place-items: center; color: #0b0713; cursor: pointer; border: 0;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   box-shadow: 0 8px 22px #00000059;
@@ -2067,7 +2077,12 @@ body.overlay-open .rub-tip { display: none !important; }
 .np-times { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 10px; color: var(--faint); }
 .np-times b { color: var(--muted); font-weight: 500; }
 .np-spacer { flex: 1; }
-.np-transport { padding: 8px 0 0; background: none; border-top: 0; }
+/* the audio card keeps a normal, in-flow transport bar */
+.np-audio .np-bar, .np-audio .np-transport {
+  position: static; padding: 10px 0 0; background: none; border-top: 0;
+  display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 6px;
+}
+.np-audio .np-play { width: 38px; height: 38px; border-radius: 10px; }
 .np-foot { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-mono); font-size: 9px; color: var(--faint); letter-spacing: .03em; text-transform: uppercase; padding-top: 2px; }
 .np-format { opacity: .8; }
 .np-rate { font-size: 9px; font-family: var(--font-mono); color: var(--faint); letter-spacing: .02em; }
@@ -2086,7 +2101,23 @@ body.overlay-open .rub-tip { display: none !important; }
 .lb-media .np { width: min(760px, 92vw); }
 .lb-media .np-audio { padding: 16px; }
 .lb-media .np-art { aspect-ratio: 2 / 1; max-height: 240px; }
-.lb-media .np-video video { max-height: 66vh; }
+.lb-media { width: min(1320px, 100%); height: 100%; display: grid; align-items: center; }
+.lb-stage .lb-media .np-video-shell { width: 100%; }
+.lb-media .np-video { min-height: 0; }
+.lb-media .np-video video { max-height: calc(88vh - 64px); aspect-ratio: auto; }
+.lb-media .np-stage { display: grid; }
+.lb-stage:has(.lb-media) { padding: 0 32px 20px; }
+.lb-media .np-fail { border-radius: 0 0 var(--r-lg) var(--r-lg); }
+/* Immersive (CSS fullscreen fallback) and native fullscreen for media */
+.lightbox.immersive { padding: 0; background: #000; }
+.lightbox.immersive .lb-top, .lightbox.immersive .lb-strip { display: none; }
+.lightbox.immersive .lb-stage { padding: 0; }
+.lightbox.immersive .lb-media { width: 100vw; height: 100vh; }
+.lightbox.immersive .lb-media .np-stage { height: 100vh; border-radius: 0; }
+.lightbox:fullscreen { padding: 0; background: #000; }
+.lightbox:fullscreen .lb-stage { padding: 0; }
+.lightbox:fullscreen .lb-media { width: 100vw; }
+.lightbox:fullscreen .lb-media .np-video video { max-height: 100vh; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    REAL MACHINE — beta tag, first-run call to action, empty hero
@@ -2210,9 +2241,15 @@ body.overlay-open .rub-tip { display: none !important; }
     <div class="tb-right">
       <span class="tb-privacy" id="tbPrivacy"></span>
       <div class="win-ctrls">
-        <button class="win-btn" data-win="min" aria-label="Minimise"></button>
-        <button class="win-btn" data-win="max" aria-label="Maximise"></button>
-        <button class="win-btn danger" data-win="close" aria-label="Close"></button>
+        <button class="win-btn" data-win="min" aria-label="Minimise" title="Minimise">
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M0 5h10"/></svg>
+        </button>
+        <button class="win-btn" data-win="max" aria-label="Maximise" title="Maximise">
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" aria-hidden="true"><rect x="0.5" y="0.5" width="9" height="9" rx="1"/></svg>
+        </button>
+        <button class="win-btn danger" data-win="close" aria-label="Close" title="Close">
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10"/></svg>
+        </button>
       </div>
     </div>
   </header>
@@ -2234,9 +2271,6 @@ body.overlay-open .rub-tip { display: none !important; }
         </button>
         <button class="rub" data-view="library" aria-label="Library">
           <span class="rub-ic" data-icon="layers"></span><span class="rub-tip">Library</span>
-        </button>
-        <button class="rub" data-view="ask" aria-label="Ask Nova">
-          <span class="rub-ic" data-icon="sparkles"></span><span class="rub-tip">Ask Nova <i>new</i></span>
         </button>
       </nav>
       <div class="rail-gap"></div>
@@ -2367,24 +2401,6 @@ body.overlay-open .rub-tip { display: none !important; }
           </div>
         </section>
 
-        <!-- ask -->
-        <section class="ask" id="ask" hidden>
-          <div class="ask-wrap">
-            <div class="ask-mark" id="askMark"></div>
-            <p class="hero-eyebrow">Ask Nova</p>
-            <h2 class="ask-title">Describe what you're after.<br><span class="grad">In plain words.</span></h2>
-            <p class="ask-sub">Nova turns ordinary sentences into filters — no syntax to memorise. It runs entirely on this machine.</p>
-            <div class="ask-field">
-              <textarea id="askInput" rows="2" placeholder="e.g. big videos from iceland edited last week"></textarea>
-              <button class="ask-go" id="askGo"><span data-icon="arrowUp"></span></button>
-            </div>
-            <div class="ask-examples" id="askExamples"></div>
-            <div class="ask-result-head" id="askResultHead" hidden></div>
-            <div class="ask-chips" id="askChips" hidden></div>
-            <div class="ask-list" id="askList"></div>
-          </div>
-        </section>
-
       </div>
 
       <footer class="hints" id="hints">
@@ -2447,10 +2463,16 @@ body.overlay-open .rub-tip { display: none !important; }
   <div class="lb-top">
     <div class="lb-title" id="lbTitle"></div>
     <div class="lb-tools">
-      <button class="icon-btn" id="lbZoomOut" title="Zoom out"><span data-icon="zoomOut"></span></button>
-      <span class="lb-zoom" id="lbZoom">100%</span>
-      <button class="icon-btn" id="lbZoomIn" title="Zoom in"><span data-icon="zoomIn"></span></button>
-      <button class="icon-btn" id="lbDownload" title="Download / save"><span data-icon="download"></span></button>
+      <div class="lb-zoomgroup" id="lbZoomGroup" hidden>
+        <button class="icon-btn" id="lbZoomOut" title="Zoom out (−)"><span data-icon="zoomOut"></span></button>
+        <span class="lb-zoom" id="lbZoom">100%</span>
+        <button class="icon-btn" id="lbZoomIn" title="Zoom in (+)"><span data-icon="zoomIn"></span></button>
+        <button class="icon-btn" id="lbZoomReset" title="Actual size (0)"><span data-icon="target"></span></button>
+      </div>
+      <button class="icon-btn" id="lbFullscreen" title="Fullscreen (F)"><span data-icon="expand"></span></button>
+      <button class="icon-btn" id="lbPrev" title="Previous (←)"><span data-icon="chevronLeft"></span></button>
+      <button class="icon-btn" id="lbNext" title="Next (→)"><span data-icon="chevronRight"></span></button>
+      <button class="icon-btn" id="lbDownload" title="Save a copy"><span data-icon="download"></span></button>
       <button class="icon-btn" id="lbClose" title="Close (Esc)"><span data-icon="close"></span></button>
     </div>
   </div>
@@ -2919,6 +2941,7 @@ body.overlay-open .rub-tip { display: none !important; }
     plus: '<path d="M12 5v14M5 12h14"/>',
     minus: '<path d="M5 12h14"/>',
     check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+    target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
     chevronLeft: '<path d="m14.5 5-7 7 7 7"/>',
     chevronRight: '<path d="m9.5 5 7 7-7 7"/>',
     chevronDown: '<path d="m5 9.5 7 7 7-7"/>',
@@ -4261,29 +4284,37 @@ body.overlay-open .rub-tip { display: none !important; }
     const hd = m.height ? `${m.height}p` : '';
     const badge = [hd, m.fps ? `${m.fps} fps` : '', m.codec || '', m.duration ? fmt(m.duration) : '']
       .filter(Boolean).join(' · ');
-    return `<div class="np" data-player="video" data-key="${key}" ${opts.compact ? 'data-compact="1"' : ''}>
-      <div class="np-video${opts.floating ? ' floating' : ''}">
-        ${src ? `<video data-media src="${esc(src)}" playsinline preload="metadata" ${entry.thumb ? `poster="${esc(entry.thumb)}"` : ''}></video>` : `
-          <div class="np-poster">${entry.thumb ? `<img src="${esc(entry.thumb)}" alt="">` : ''}
-            <span class="np-play-badge">${icon('video', { size: 22 })}</span></div>`}
-        ${src ? '<button class="np-bigplay" data-act="toggle" aria-label="Play or pause">' + icon('play', { size: 26 }) + '</button>' : ''}
-      </div>
-      <div class="np-bar">
-        <button class="np-btn np-play" data-act="toggle" title="Play / pause">${icon('play', { size: 15 })}</button>
-        <span class="np-time"><b data-cur>0:00</b><i>/</i><span data-dur>${fmt(m.duration || 0)}</span></span>
-        <div class="np-track" data-act="seek" role="slider" aria-label="Seek" tabindex="0">
-          <div class="np-buffer" data-buffer></div>
-          <div class="np-fill" data-fill></div>
-          <div class="np-knob" data-knob></div>
+    return `<div class="np np-video-shell" data-player="video" data-key="${key}" ${opts.compact ? 'data-compact="1"' : ''}>
+      <div class="np-stage">
+        <div class="np-video${opts.floating ? ' floating' : ''}">
+          ${src ? `<video data-media src="${esc(src)}" playsinline preload="metadata" ${entry.thumb ? `poster="${esc(entry.thumb)}"` : ''}></video>` : `
+            <div class="np-poster">${entry.thumb ? `<img src="${esc(entry.thumb)}" alt="">` : ''}
+              <span class="np-play-badge">${icon('video', { size: 28 })}</span></div>`}
+          ${src ? '<button class="np-bigplay" data-act="toggle" aria-label="Play or pause">' + icon('play', { size: 30 }) + '</button>' : ''}
+          ${badge ? `<span class="np-badge">${esc(badge)}</span>` : ''}
         </div>
-        <button class="np-btn" data-act="mute" title="Mute">${icon('volume', { size: 15 })}</button>
-        <input class="np-vol" data-act="vol" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume">
-        <button class="np-chip" data-act="speed" title="Playback speed">1×</button>
-        <button class="np-btn" data-act="pip" title="Picture in picture">${icon('pip', { size: 15 })}</button>
-        <button class="np-btn" data-act="full" title="Fullscreen">${icon('expand', { size: 15 })}</button>
-        ${opts.onOpen ? `<button class="np-btn" data-act="open" title="Open in lightbox">${icon('maximize', { size: 15 })}</button>` : ''}
+        <div class="np-scrim"></div>
+        <div class="np-transport">
+          <div class="np-track" data-act="seek" role="slider" aria-label="Seek" tabindex="0">
+            <div class="np-buffer" data-buffer></div>
+            <div class="np-fill" data-fill></div>
+            <div class="np-knob" data-knob></div>
+          </div>
+          <div class="np-controls">
+            <button class="np-btn np-play" data-act="toggle" title="Play / pause (Space)" aria-label="Play or pause">${icon('play', { size: 18 })}</button>
+            <span class="np-time"><b data-cur>0:00</b><i>/</i><span data-dur>${fmt(m.duration || 0)}</span></span>
+            <span class="np-spacer"></span>
+            <div class="np-volgroup">
+              <button class="np-btn" data-act="mute" title="Mute (M)" aria-label="Mute">${icon('volume', { size: 17 })}</button>
+              <input class="np-vol" data-act="vol" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume">
+            </div>
+            <button class="np-chip" data-act="speed" title="Playback speed">1×</button>
+            <button class="np-btn" data-act="pip" title="Picture in picture" aria-label="Picture in picture">${icon('pip', { size: 17 })}</button>
+            <button class="np-btn" data-act="full" title="Fullscreen (F)" aria-label="Fullscreen">${icon('expand', { size: 17 })}</button>
+            ${opts.onOpen ? `<button class="np-btn" data-act="open" title="Open full size" aria-label="Open full size">${icon('maximize', { size: 17 })}</button>` : ''}
+          </div>
+        </div>
       </div>
-      ${badge ? `<div class="np-badge">${esc(badge)}</div>` : ''}
     </div>`;
   }
 
@@ -4336,6 +4367,77 @@ body.overlay-open .rub-tip { display: none !important; }
     if (opts.queue && opts.queue.length) state.queue = opts.queue;
     wire(root, state);
     return state;
+  }
+
+  /* Fullscreen that actually works: request on the player shell so the
+     controls come with the picture, fall back to the stage, then to a CSS
+     "theater" mode when the Fullscreen API is unavailable (iframes, some
+     Linux webviews). Keeps the icon in sync either way. */
+  function toggleFullscreen(root) {
+    const shell = root.querySelector('.np-stage') || root;
+    const lb = root.closest('.lightbox');
+    const paint = () => {
+      const on = !!document.fullscreenElement
+        || shell.classList.contains('theater')
+        || (lb && lb.classList.contains('immersive'));
+      root.querySelectorAll('[data-act="full"]').forEach((b) => {
+        b.classList.toggle('on', on);
+        b.innerHTML = icon(on ? 'shrink' : 'expand', { size: 17 });
+        b.title = on ? 'Exit fullscreen (F)' : 'Fullscreen (F)';
+      });
+    };
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().finally(paint);
+      shell.classList.remove('theater');
+      if (lb) lb.classList.remove('immersive');
+      return;
+    }
+    const target = lb || shell;
+    target.requestFullscreen?.()
+      .then(paint)
+      .catch(() => {
+        target.classList.add('immersive');
+        shell.classList.add('theater');
+        NS.ui.toast('Immersive view — F or Esc to exit', 'info', 'expand');
+        paint();
+      });
+  }
+
+  /* A readable, actionable failure card instead of a one-line warning. */
+  function showFailure(root, s) {
+    if (!root || root.querySelector('.np-fail')) return;
+    const media = s && s.media;
+    const code = (media && media.error && media.error.code) || 0;
+    const ext = ((s && s.entry && s.entry.ext) || '').toUpperCase();
+    const REASONS = {
+      3: 'The file is damaged or only partly copied.',
+      4: 'This codec is not built into the app.',
+    };
+    const why = REASONS[code] || 'The browser engine could not decode it.';
+    const fail = document.createElement('div');
+    fail.className = 'np-fail';
+    fail.innerHTML = `
+      <div class="np-fail-head">${icon('info', { size: 15 })}<b>Can't play this ${esc(ext || 'file')} here</b></div>
+      <p>${esc(why)} Nova keeps the index and metadata intact — the file itself is unchanged.</p>
+      <div class="np-fail-actions">
+        ${s && s.opts && s.opts.onOpen ? `<button class="np-fail-btn primary" data-act="open">${icon('play', { size: 13 })} Open in the system player</button>` : ''}
+        <button class="np-fail-btn" data-act="reveal">${icon('folder', { size: 13 })} Show in folder</button>
+        <button class="np-fail-btn" data-act="convert">${icon('info', { size: 13 })} Why?</button>
+      </div>`;
+    root.appendChild(fail);
+    fail.addEventListener('click', (ev) => {
+      const act = ev.target.closest('[data-act]');
+      if (!act) return;
+      if (act.dataset.act === 'open' && s.opts && s.opts.onOpen) s.opts.onOpen();
+      else if (act.dataset.act === 'reveal') {
+        const e = s.entry;
+        if (window.nova?.reveal && e?.path) window.nova.reveal(e.path);
+        else NS.ui.toast('Reveal works in the desktop app', 'info', 'reveal');
+      }
+      else if (act.dataset.act === 'convert') {
+        NS.ui.toast('MKV/WMV/HEVC need system codecs. Play them in VLC or use “Open”.', 'info', 'info', 7000);
+      }
+    });
   }
 
   function wire(root, s) {
@@ -4412,20 +4514,43 @@ body.overlay-open .rub-tip { display: none !important; }
         syncPlay();
         if (s.opts && s.opts.onEnded) s.opts.onEnded(s);
       });
+      // Distinguish a real decode failure from the transient error every
+      // <video> fires while its src is being swapped (including on unmount).
       media.addEventListener('error', () => {
-        // readyState 0 + no src means "not loaded yet", not "unplayable".
-        if (!media.getAttribute('src') || media.readyState === 0) return;
-        if (!root.querySelector('.np-fail')) {
-          const fail = document.createElement('div');
-          fail.className = 'np-fail';
-          fail.innerHTML = `${icon('info', { size: 12 })} This codec can't play inside the app (some MKV, WMV or HEVC files). Use “Open” to launch it in its native player.`;
-          root.appendChild(fail);
-        }
+        const err = media.error;
+        if (!media.getAttribute('src')) return;
+        // 1 = MEDIA_ERR_ABORTED, 2 = NETWORK: usually a cancelled stream, not a codec.
+        if (err && (err.code === 1 || err.code === 2) && media.readyState < 2) return;
+        // Nothing decoded yet and the element was just torn down: ignore.
+        if (media.readyState === 0 && !err) return;
+        showFailure(root, s);
       });
+      // A stalled network read (common for big MKV over a slow disk) should
+      // retry instead of declaring the file unplayable.
+      let stalls = 0;
+      media.addEventListener('stalled', () => { stalls++; if (stalls <= 2) safeLoad(media); });
+      media.addEventListener('canplay', () => { stalls = 0; root.querySelector('.np-fail')?.remove(); });
+      // Keep the fullscreen affordance truthful whichever way the user exits.
+      const onFsChange = () => {
+        if (!document.fullscreenElement) {
+          root.querySelector('.np-stage')?.classList.remove('theater');
+          root.querySelector('.lightbox')?.classList.remove('immersive');
+        }
+        const on = !!document.fullscreenElement;
+        root.querySelectorAll('[data-act="full"]').forEach((b) => {
+          b.classList.toggle('on', on);
+          b.innerHTML = icon(on ? 'shrink' : 'expand', { size: 17 });
+        });
+      };
+      document.addEventListener('fullscreenchange', onFsChange);
       paintProgress();
       raf = requestAnimationFrame(tick);
       const oldCleanup = s.cleanup;
-      s.cleanup = () => { cancelAnimationFrame(raf); if (oldCleanup) oldCleanup(); };
+      s.cleanup = () => {
+        cancelAnimationFrame(raf);
+        document.removeEventListener('fullscreenchange', onFsChange);
+        if (oldCleanup) oldCleanup();
+      };
     }
 
     const seekTo = (clientX) => {
@@ -4492,10 +4617,7 @@ body.overlay-open .rub-tip { display: none !important; }
           media.requestPictureInPicture?.().catch(() => NS.ui.toast('Picture-in-picture unavailable here', 'warn', 'info'));
         }
       } else if (name === 'full') {
-        const box = root.querySelector('.np-video');
-        if (!box) return;
-        if (document.fullscreenElement) document.exitFullscreen?.();
-        else box.requestFullscreen?.().catch(() => {});
+        toggleFullscreen(root);
       } else if (name === 'open') {
         if (s.opts && s.opts.onOpen) s.opts.onOpen();
       } else if (name === 'prev') {
@@ -4512,10 +4634,18 @@ body.overlay-open .rub-tip { display: none !important; }
       }
     });
 
-    // Space toggles playback while the player has focus; handled locally so
-    // the global "peek" shortcut doesn't fight it.
+    // Space toggles playback, F fullscreen, M mute. Handled locally so the
+    // global "peek" shortcut does not fight the player.
     root.addEventListener('keydown', (ev) => {
-      if (ev.key === ' ' && !ev.target.closest('input')) { ev.preventDefault(); toggle(); }
+      if (ev.target.closest('input, textarea')) return;
+      if (ev.key === ' ') { ev.preventDefault(); toggle(); }
+      else if (ev.key === 'f' || ev.key === 'F') { ev.preventDefault(); if (kind === 'video') toggleFullscreen(root); }
+      else if (ev.key === 'm' || ev.key === 'M') {
+        if (!media) return;
+        media.muted = !media.muted;
+        const b = root.querySelector('[data-act="mute"]');
+        if (b) { b.classList.toggle('on', media.muted); b.innerHTML = icon(media.muted ? 'volumeOff' : 'volume', { size: 17 }); }
+      }
     }, true);
   }
 
@@ -5213,6 +5343,11 @@ body.overlay-open .rub-tip { display: none !important; }
     lightboxState.zoom = 1;
     if (zoomEl) zoomEl.textContent = '100%';
     if (title) title.innerHTML = `${esc(entry.name)}<small>${esc(d.label)} · ${fmtBytes(entry.size)}</small>`;
+    // Zoom belongs to images only — it made no sense over a video transport.
+    const zoomGroup = document.getElementById('lbZoomGroup');
+    const isImage = d.kind === 'image' && !!(entry.url || entry.thumb);
+    if (zoomGroup) zoomGroup.hidden = !isImage;
+    lightboxState.canZoom = isImage;
     NS.player.unmountAll(stage);
     if (d.kind === 'image' && (entry.url || entry.thumb)) {
       stage.innerHTML = `<img src="${esc(entry.url || entry.thumb)}" alt="${esc(entry.name)}" id="lbImage">`;
@@ -5272,12 +5407,30 @@ body.overlay-open .rub-tip { display: none !important; }
     const lb = document.getElementById('lightbox');
     const zoomEl = () => document.getElementById('lbZoom');
     const setZoom = (value) => {
+      if (!lightboxState.canZoom) return; // videos and audio have no zoom
       lightboxState.zoom = NS.util.clamp(value, 0.25, 4);
       const img = document.getElementById('lbImage');
-      if (img) img.style.transform = `scale(${lightboxState.zoom})`;
+      if (img) {
+        img.style.transform = `scale(${lightboxState.zoom})`;
+        img.style.cursor = lightboxState.zoom > 1 ? 'grab' : 'default';
+      }
       const label = document.querySelector('#lbZoom');
       if (label) label.textContent = `${Math.round(lightboxState.zoom * 100)}%`;
     };
+    const toggleFullscreen = () => {
+      const lb = document.getElementById('lightbox');
+      if (!lb) return;
+      if (document.fullscreenElement) { document.exitFullscreen?.(); return; }
+      lb.requestFullscreen?.().catch(() => {
+        // Fall back to an immersive class where the Fullscreen API is blocked.
+        lb.classList.toggle('immersive');
+        NS.toast?.(lb.classList.contains('immersive') ? 'Immersive mode' : 'Immersive mode off', 'info', 'expand');
+      });
+    };
+    document.getElementById('lbFullscreen')?.addEventListener('click', toggleFullscreen);
+    document.getElementById('lbZoomReset')?.addEventListener('click', () => setZoom(1));
+    document.getElementById('lbPrev')?.addEventListener('click', () => stepLightbox(-1));
+    document.getElementById('lbNext')?.addEventListener('click', () => stepLightbox(1));
     document.getElementById('lbZoomIn')?.addEventListener('click', () => setZoom(lightboxState.zoom * 1.25));
     document.getElementById('lbZoomOut')?.addEventListener('click', () => setZoom(lightboxState.zoom / 1.25));
     document.getElementById('lbClose')?.addEventListener('click', closeLightbox);
@@ -5301,7 +5454,7 @@ body.overlay-open .rub-tip { display: none !important; }
       if (ev.key === 'ArrowRight') stepLightbox(1);
       if (ev.key === 'ArrowLeft') stepLightbox(-1);
       if (ev.key === '+' || ev.key === '=') setZoom(lightboxState.zoom * 1.2);
-      if (ev.key === '-') setZoom(lightboxState.zoom / 1.2);
+      if (ev.key === '-' || ev.key === '_') setZoom(lightboxState.zoom / 1.2);
       if (ev.key === '0') setZoom(1);
     }, true);
   }
@@ -5810,7 +5963,6 @@ body.overlay-open .rub-tip { display: none !important; }
     renderLimit: 80,
     suggestIndex: -1,
     suggestItems: [],
-    askRun: null,
     lastTook: null,
     browserFiles: new Map(),
     fsRoots: new Map(),
@@ -5845,7 +5997,6 @@ body.overlay-open .rub-tip { display: none !important; }
     bindFilters();
     bindSort();
     bindLayout();
-    bindAsk();
     bindLibrary();
     bindKeyboard();
     bindDrop();
@@ -5882,10 +6033,9 @@ body.overlay-open .rub-tip { display: none !important; }
       'scopes', 'indexState', 'indexCount', 'btnIndex', 'stageBody', 'hero', 'heroChips', 'formatStrip', 'heroStats',
       'results', 'resultsTitle', 'resultMeta', 'kindChips', 'activeFilters', 'list', 'emptyState', 'emptyArt',
       'emptyTitle', 'emptyText', 'emptyActions', 'selectionBar', 'selCount', 'resultScroll', 'listColumns',
-      'library', 'rootGrid', 'folderGrid', 'folderCount', 'askInput', 'askGo', 'askExamples', 'askChips',
-      'askList', 'askResultHead', 'preview', 
+      'library', 'rootGrid', 'folderGrid', 'folderCount', 'preview',
       'pvStar', 'pvMore', 'pvClose', 'pvOpen', 'pvReveal', 'pvCopy', 'tbIndex', 'tbMark', 'filterCount', 'sortLabel',
-      'pvScroll', 'pvKind', 'pvName', 'pvPath', 'pvMeta', 'pvTags', 'pvNote', 'pvMedia', 'ask',
+      'pvScroll', 'pvKind', 'pvName', 'pvPath', 'pvMeta', 'pvTags', 'pvNote', 'pvMedia',
       'btnFilters', 'btnSort', 'btnTheme', 'btnSettings', 'btnHelp', 'btnShortcuts', 'railHome', 'paletteInput',
       'paletteList', 'paletteOverlay', 'filterPop', 'sortPop', 'filterSize', 'filterDate', 'filterFlags', 'sortList',
       'btnIndex', 'storageSize', 'storageFill', 'storageText', 'settingsRoots', 'dropVeil', 'fileInput', 'folderInput',
@@ -6105,7 +6255,7 @@ body.overlay-open .rub-tip { display: none !important; }
       clearTimeout(bindField._t);
       bindField._t = setTimeout(() => refs.field.classList.remove('typing'), 320);
       refs.btnClear.hidden = !input.value;
-      if (state.view === 'library' || state.view === 'ask') setView('search', { keepQuery: true, silent: true });
+      if (state.view === 'library') setView('search', { keepQuery: true, silent: true });
       runSearch();
       renderSuggest();
     });
@@ -6846,7 +6996,6 @@ body.overlay-open .rub-tip { display: none !important; }
     if (state.filters.sizes.size || state.filters.dates.size || state.filters.flags.size) actions.push({ label: 'Reset filters', run: () => { state.filters.sizes.clear(); state.filters.dates.clear(); state.filters.flags.clear(); syncFilterPopover(); runSearch(); } });
     if (q && state.smartChips?.length) actions.push({ label: 'Drop smart filters', run: () => { state.smartDismissed = new Set(state.smartChips.map((c) => c.key)); runSearch(); } });
     if (q) actions.push({ label: 'Search everything', run: () => { state.scope = 'everything'; state.chipKind = null; state.filters.sizes.clear(); state.filters.dates.clear(); state.filters.flags.clear(); renderScopes(); runSearch(); } });
-    actions.push({ label: 'Ask Nova instead', icon: 'sparkles', run: () => setView('ask') });
     refs.emptyActions.innerHTML = actions.map((a, i) => `<button class="ghost-btn ${i === 0 ? 'primary' : ''}" data-empty="${i}">${a.icon ? icon(a.icon, { size: 14 }) : ''}${esc(a.label)}</button>`).join('');
     refs.emptyActions.querySelectorAll('[data-empty]').forEach((btn) => btn.addEventListener('click', () => actions[Number(btn.dataset.empty)].run()));
   }
@@ -7212,7 +7361,6 @@ body.overlay-open .rub-tip { display: none !important; }
     refs.heroChips.addEventListener('click', (ev) => {
       const chip = ev.target.closest('[data-hero]');
       if (!chip) return;
-      if (chip.dataset.hero === '__ask') { setView('ask'); return; }
       applyQuery(chip.dataset.hero);
     });
     refs.formatStrip.addEventListener('click', (ev) => {
@@ -7227,25 +7375,16 @@ body.overlay-open .rub-tip { display: none !important; }
     state.multi.clear();
     updateSelectionBar();
     $$('.rail .rub[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
-    const showDeck = view !== 'ask';
-    $('.deck').style.display = showDeck ? '' : 'none';
-    refs.scopes.parentElement.style.display = view === 'ask' ? 'none' : '';
+    $('.deck').style.display = '';
+    refs.scopes.parentElement.style.display = '';
     refs.hero.hidden = true;
     refs.results.hidden = true;
     refs.library.hidden = true;
-    refs.ask.hidden = true;
     closePreview();
     if (view === 'library') {
       refs.app.dataset.mode = 'library';
       refs.library.hidden = false;
       renderLibrary();
-      return;
-    }
-    if (view === 'ask') {
-      refs.app.dataset.mode = 'ask';
-      refs.ask.hidden = false;
-      renderAsk();
-      refs.askInput.focus();
       return;
     }
     if (!opts.keepQuery) {
@@ -7438,109 +7577,6 @@ body.overlay-open .rub-tip { display: none !important; }
         ${icon('chevronRight', { size: 14 })}
       </button>`;
     }).join('') || '<div class="root-empty" style="grid-column:1/-1">No folders mapped yet — index a location to see its folder tree.</div>';
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════
-     Ask Nova
-     ═══════════════════════════════════════════════════════════════════════ */
-  const ASK_EXAMPLES = [
-    'big videos from iceland edited last week',
-    'starred pdfs about the brand',
-    'design files over 50 MB',
-    'screenshots from today',
-    'code that mentions search',
-    'wallpapers and images',
-  ];
-
-  function bindAsk() {
-    const input = refs.askInput;
-    refs.askExamples.innerHTML = ASK_EXAMPLES.map((ex, i) => `<button class="ask-ex" data-ask="${esc(ex)}" style="animation-delay:${i * 40}ms">“${esc(ex)}”</button>`).join('');
-    refs.askExamples.addEventListener('click', (ev) => {
-      const btn = ev.target.closest('[data-ask]');
-      if (!btn) return;
-      input.value = btn.dataset.ask;
-      askRun();
-    });
-    refs.askGo.addEventListener('click', askRun);
-    input.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); askRun(); }
-    });
-    input.addEventListener('input', () => {
-      input.style.height = 'auto';
-      input.style.height = Math.min(140, input.scrollHeight) + 'px';
-    }, false);
-  }
-
-  function renderAsk() {
-    if (!refs.ask._init) {
-      refs.ask._init = true;
-    }
-    if (refs.askList && !refs.askList.dataset.ready) {
-      refs.askList.dataset.ready = '1';
-      refs.askList.innerHTML = '';
-    }
-  }
-
-  function askRun() {
-    const text = refs.askInput.value.trim();
-    if (!text) { refs.askInput.focus(); return; }
-    const analysis = analyzeSmart(text);
-    const kindFromWords = analysis.kindChips;
-    const run = search.run(store.state.entries, analysis.effective, {
-      sort: 'relevance',
-      showHidden: store.state.settings.showHidden,
-      fuzzy: true,
-    });
-    const chips = analysis.chips;
-    refs.askResultHead.hidden = false;
-    refs.askResultHead.innerHTML = `<span>${icon('sparkles', { size: 13 })}</span> Interpreted <b>${chips.length ? chips.length + ' signals' : 'as keywords'}</b> · <b>${fmtNum(run.total)}</b> files in ${fmtTime(run.took)}`;
-    refs.askChips.hidden = false;
-    refs.askChips.innerHTML = (chips.length ? chips : [{ label: analysis.tokens.join(' ') || text, icon: 'search', query: text }])
-      .map((chip) => `<button class="kind-chip" data-ask-chip="${esc(chip.query)}" title="Run this in Search">${icon(chip.icon, { size: 12 })}<span>${esc(chip.label)}</span></button>`).join('')
-      + `<button class="kind-chip" data-ask-refine style="--kc:var(--accent)">${icon('arrowUpRight', { size: 12 })}<span>Open in Search</span></button>`;
-    refs.askChips.querySelectorAll('[data-ask-chip]').forEach((btn) => btn.addEventListener('click', () => {
-      setView('search', { keepQuery: true, silent: true });
-      applyQuery(btn.dataset.askChip);
-    }));
-    refs.askChips.querySelector('[data-ask-refine]')?.addEventListener('click', () => {
-      setView('search', { keepQuery: true, silent: true });
-      applyQuery(analysis.tokens.join(' ') || text);
-      state.chipKind = kindFromWords.length === 1 ? kindFromWords[0].query.split(':')[1] : null;
-      runSearch();
-    });
-    const items = run.results.slice(0, 12);
-    refs.askList.innerHTML = items.map((item, i) => {
-      const e = item.entry;
-      const def = NS.kindOf(e);
-      return `<article class="row" data-ask-id="${esc(e.id)}" style="--kc:${def.color};animation-delay:${i * 25}ms">
-        <div class="r-main">
-          <div class="thumb ${e.thumb ? '' : 'ext-thumb'}" data-ext="${esc((e.ext || def.label).slice(0, 6))}">${thumbHTML(e, def)}</div>
-          <div class="r-text">
-            <div class="r-name">${nameHTML(e, item.indices)}</div>
-            <div class="r-sub"><span class="r-gmeta">${esc(def.label)} · ${fmtBytes(e.size)} · ${esc(parentFolder(e))}</span></div>
-          </div>
-        </div>
-        <div class="r-loc">${icon('folder', { size: 12 })}<span>${esc(parentFolder(e))}</span></div>
-        <div class="r-kind-cell"><span class="pill" style="--kc:${def.color}">${icon(def.icon, { size: 10 })}${esc(def.label)}</span></div>
-        <div class="r-size">${fmtBytes(e.size)}</div>
-        <div class="r-date">${fmtDate(e.modified)}</div>
-        <div class="r-actions"></div>
-      </article>`;
-    }).join('');
-    refs.askChips.hidden = false;
-    refs.askChips.hidden = false;
-    refs.askChips.hidden = false;
-    refs.askChips.dataset.done = '1';
-    if (!items.length) {
-      refs.askList.innerHTML = `<div class="empty-state"><div class="empty-art">${ui.emptyArt('search')}</div><h3>No files fit that description</h3><p>Try fewer details, or a different wording.</p></div>`;
-    }
-    refs.askList.querySelectorAll('[data-ask-id]').forEach((row) => {
-      row.addEventListener('click', () => {
-        const entry = entryById(row.dataset.askId);
-        if (entry) { state.activeId = entry.id; openPreview(entry); }
-      });
-    });
-    refs.askResultHead.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -7944,7 +7980,6 @@ body.overlay-open .rub-tip { display: none !important; }
   const COMMANDS = [
     { id: 'index', title: 'Index a folder', sub: 'Scan names, formats and metadata locally', icon: 'drive', key: `${modKey}O`, run: () => indexFolders() },
     { id: 'import', title: 'Import files', sub: 'Add individual files to the index', icon: 'download', key: `${modKey}I`, run: () => refs.fileInput.click() },
-    { id: 'ask', title: 'Ask Nova', sub: 'Describe what you need in plain words', icon: 'sparkles', key: `${modKey}⇧K`, run: () => setView('ask') },
     { id: 'starred', title: 'Go to Starred', sub: 'Every file you saved', icon: 'star', key: `${modKey}2`, run: () => setView('starred') },
     { id: 'recent', title: 'Go to Recent', sub: 'Sorted by modification time', icon: 'clock', key: `${modKey}3`, run: () => setView('recent') },
     { id: 'library', title: 'Open Library', sub: 'Roots, folders and coverage', icon: 'layers', key: `${modKey}4`, run: () => setView('library') },
@@ -8075,7 +8110,6 @@ body.overlay-open .rub-tip { display: none !important; }
       }
 
       if (mod && key === 'k' && !ev.shiftKey) { ev.preventDefault(); openPalette(); return; }
-      if (mod && key === 'k' && ev.shiftKey) { ev.preventDefault(); setView('ask'); return; }
       if (mod && ev.key === ',') { ev.preventDefault(); ui.resetSettingsForm(); ui.renderRoots(rootHandlers); ui.openOverlay('settingsOverlay'); return; }
       if (mod && key === 'o') { ev.preventDefault(); indexFolders(); return; }
       if (mod && key === 'i' && !ev.shiftKey) { ev.preventDefault(); refs.fileInput.click(); return; }
@@ -8091,10 +8125,10 @@ body.overlay-open .rub-tip { display: none !important; }
         if (entry) copyPath(entry);
         return;
       }
-      if (mod && key === 'l') { ev.preventDefault(); if (state.view === 'ask') setView('search', { keepQuery: true, silent: true }); refs.query.focus(); refs.query.select(); return; }
+      if (mod && key === 'l') { ev.preventDefault(); refs.query.focus(); refs.query.select(); return; }
       if (mod && ev.shiftKey && key === 'l') { ev.preventDefault(); store.setSettings({ theme: document.documentElement.dataset.theme === 'light' ? 'dark' : 'light' }); applyTheme(); ui.resetSettingsForm(); return; }
 
-      if (ev.key === '/' && !typing) { ev.preventDefault(); if (state.view === 'ask') setView('search', { keepQuery: true, silent: true }); refs.query.focus(); return; }
+      if (ev.key === '/' && !typing) { ev.preventDefault(); refs.query.focus(); return; }
       if (ev.key === '?' && !typing) { ev.preventDefault(); ui.openOverlay('shortcutsOverlay'); return; }
       if (ev.key === '?' && typing) { ui.openOverlay('shortcutsOverlay'); return; }
       if (typing) return;
@@ -8187,7 +8221,7 @@ body.overlay-open .rub-tip { display: none !important; }
 
   NS.app = {
     state, runSearch, setView, applyQuery, openPreview, closePreview, openPalette, renderHistory,
-    focusSearch: () => { if (state.view === 'ask') setView('search', { keepQuery: true, silent: true }); refs.query.focus(); },
+    focusSearch: () => { refs.query.focus(); },
     indexFolders, importFiles, refreshMeta, renderLibrary, boot, analyzeSmart,
     ingestFiles: (files, label) => ingestFileList(files, label || 'Folder'),
     ingestNativeScan: (label, result) => {

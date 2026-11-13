@@ -537,6 +537,11 @@
     lightboxState.zoom = 1;
     if (zoomEl) zoomEl.textContent = '100%';
     if (title) title.innerHTML = `${esc(entry.name)}<small>${esc(d.label)} · ${fmtBytes(entry.size)}</small>`;
+    // Zoom belongs to images only — it made no sense over a video transport.
+    const zoomGroup = document.getElementById('lbZoomGroup');
+    const isImage = d.kind === 'image' && !!(entry.url || entry.thumb);
+    if (zoomGroup) zoomGroup.hidden = !isImage;
+    lightboxState.canZoom = isImage;
     NS.player.unmountAll(stage);
     if (d.kind === 'image' && (entry.url || entry.thumb)) {
       stage.innerHTML = `<img src="${esc(entry.url || entry.thumb)}" alt="${esc(entry.name)}" id="lbImage">`;
@@ -596,12 +601,30 @@
     const lb = document.getElementById('lightbox');
     const zoomEl = () => document.getElementById('lbZoom');
     const setZoom = (value) => {
+      if (!lightboxState.canZoom) return; // videos and audio have no zoom
       lightboxState.zoom = NS.util.clamp(value, 0.25, 4);
       const img = document.getElementById('lbImage');
-      if (img) img.style.transform = `scale(${lightboxState.zoom})`;
+      if (img) {
+        img.style.transform = `scale(${lightboxState.zoom})`;
+        img.style.cursor = lightboxState.zoom > 1 ? 'grab' : 'default';
+      }
       const label = document.querySelector('#lbZoom');
       if (label) label.textContent = `${Math.round(lightboxState.zoom * 100)}%`;
     };
+    const toggleFullscreen = () => {
+      const lb = document.getElementById('lightbox');
+      if (!lb) return;
+      if (document.fullscreenElement) { document.exitFullscreen?.(); return; }
+      lb.requestFullscreen?.().catch(() => {
+        // Fall back to an immersive class where the Fullscreen API is blocked.
+        lb.classList.toggle('immersive');
+        NS.toast?.(lb.classList.contains('immersive') ? 'Immersive mode' : 'Immersive mode off', 'info', 'expand');
+      });
+    };
+    document.getElementById('lbFullscreen')?.addEventListener('click', toggleFullscreen);
+    document.getElementById('lbZoomReset')?.addEventListener('click', () => setZoom(1));
+    document.getElementById('lbPrev')?.addEventListener('click', () => stepLightbox(-1));
+    document.getElementById('lbNext')?.addEventListener('click', () => stepLightbox(1));
     document.getElementById('lbZoomIn')?.addEventListener('click', () => setZoom(lightboxState.zoom * 1.25));
     document.getElementById('lbZoomOut')?.addEventListener('click', () => setZoom(lightboxState.zoom / 1.25));
     document.getElementById('lbClose')?.addEventListener('click', closeLightbox);
@@ -625,7 +648,7 @@
       if (ev.key === 'ArrowRight') stepLightbox(1);
       if (ev.key === 'ArrowLeft') stepLightbox(-1);
       if (ev.key === '+' || ev.key === '=') setZoom(lightboxState.zoom * 1.2);
-      if (ev.key === '-') setZoom(lightboxState.zoom / 1.2);
+      if (ev.key === '-' || ev.key === '_') setZoom(lightboxState.zoom / 1.2);
       if (ev.key === '0') setZoom(1);
     }, true);
   }

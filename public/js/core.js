@@ -273,6 +273,7 @@
     plus: '<path d="M12 5v14M5 12h14"/>',
     minus: '<path d="M5 12h14"/>',
     check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+    target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
     chevronLeft: '<path d="m14.5 5-7 7 7 7"/>',
     chevronRight: '<path d="m9.5 5 7 7-7 7"/>',
     chevronDown: '<path d="m5 9.5 7 7 7-7"/>',

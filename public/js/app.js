@@ -53,7 +53,6 @@
     renderLimit: 80,
     suggestIndex: -1,
     suggestItems: [],
-    askRun: null,
     lastTook: null,
     browserFiles: new Map(),
     fsRoots: new Map(),
@@ -88,7 +87,6 @@
     bindFilters();
     bindSort();
     bindLayout();
-    bindAsk();
     bindLibrary();
     bindKeyboard();
     bindDrop();
@@ -125,10 +123,9 @@
       'scopes', 'indexState', 'indexCount', 'btnIndex', 'stageBody', 'hero', 'heroChips', 'formatStrip', 'heroStats',
       'results', 'resultsTitle', 'resultMeta', 'kindChips', 'activeFilters', 'list', 'emptyState', 'emptyArt',
       'emptyTitle', 'emptyText', 'emptyActions', 'selectionBar', 'selCount', 'resultScroll', 'listColumns',
-      'library', 'rootGrid', 'folderGrid', 'folderCount', 'askInput', 'askGo', 'askExamples', 'askChips',
-      'askList', 'askResultHead', 'preview', 
+      'library', 'rootGrid', 'folderGrid', 'folderCount', 'preview',
       'pvStar', 'pvMore', 'pvClose', 'pvOpen', 'pvReveal', 'pvCopy', 'tbIndex', 'tbMark', 'filterCount', 'sortLabel',
-      'pvScroll', 'pvKind', 'pvName', 'pvPath', 'pvMeta', 'pvTags', 'pvNote', 'pvMedia', 'ask',
+      'pvScroll', 'pvKind', 'pvName', 'pvPath', 'pvMeta', 'pvTags', 'pvNote', 'pvMedia',
       'btnFilters', 'btnSort', 'btnTheme', 'btnSettings', 'btnHelp', 'btnShortcuts', 'railHome', 'paletteInput',
       'paletteList', 'paletteOverlay', 'filterPop', 'sortPop', 'filterSize', 'filterDate', 'filterFlags', 'sortList',
       'btnIndex', 'storageSize', 'storageFill', 'storageText', 'settingsRoots', 'dropVeil', 'fileInput', 'folderInput',
@@ -348,7 +345,7 @@
       clearTimeout(bindField._t);
       bindField._t = setTimeout(() => refs.field.classList.remove('typing'), 320);
       refs.btnClear.hidden = !input.value;
-      if (state.view === 'library' || state.view === 'ask') setView('search', { keepQuery: true, silent: true });
+      if (state.view === 'library') setView('search', { keepQuery: true, silent: true });
       runSearch();
       renderSuggest();
     });
@@ -1089,7 +1086,6 @@
     if (state.filters.sizes.size || state.filters.dates.size || state.filters.flags.size) actions.push({ label: 'Reset filters', run: () => { state.filters.sizes.clear(); state.filters.dates.clear(); state.filters.flags.clear(); syncFilterPopover(); runSearch(); } });
     if (q && state.smartChips?.length) actions.push({ label: 'Drop smart filters', run: () => { state.smartDismissed = new Set(state.smartChips.map((c) => c.key)); runSearch(); } });
     if (q) actions.push({ label: 'Search everything', run: () => { state.scope = 'everything'; state.chipKind = null; state.filters.sizes.clear(); state.filters.dates.clear(); state.filters.flags.clear(); renderScopes(); runSearch(); } });
-    actions.push({ label: 'Ask Nova instead', icon: 'sparkles', run: () => setView('ask') });
     refs.emptyActions.innerHTML = actions.map((a, i) => `<button class="ghost-btn ${i === 0 ? 'primary' : ''}" data-empty="${i}">${a.icon ? icon(a.icon, { size: 14 }) : ''}${esc(a.label)}</button>`).join('');
     refs.emptyActions.querySelectorAll('[data-empty]').forEach((btn) => btn.addEventListener('click', () => actions[Number(btn.dataset.empty)].run()));
   }
@@ -1455,7 +1451,6 @@
     refs.heroChips.addEventListener('click', (ev) => {
       const chip = ev.target.closest('[data-hero]');
       if (!chip) return;
-      if (chip.dataset.hero === '__ask') { setView('ask'); return; }
       applyQuery(chip.dataset.hero);
     });
     refs.formatStrip.addEventListener('click', (ev) => {
@@ -1470,25 +1465,16 @@
     state.multi.clear();
     updateSelectionBar();
     $$('.rail .rub[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
-    const showDeck = view !== 'ask';
-    $('.deck').style.display = showDeck ? '' : 'none';
-    refs.scopes.parentElement.style.display = view === 'ask' ? 'none' : '';
+    $('.deck').style.display = '';
+    refs.scopes.parentElement.style.display = '';
     refs.hero.hidden = true;
     refs.results.hidden = true;
     refs.library.hidden = true;
-    refs.ask.hidden = true;
     closePreview();
     if (view === 'library') {
       refs.app.dataset.mode = 'library';
       refs.library.hidden = false;
       renderLibrary();
-      return;
-    }
-    if (view === 'ask') {
-      refs.app.dataset.mode = 'ask';
-      refs.ask.hidden = false;
-      renderAsk();
-      refs.askInput.focus();
       return;
     }
     if (!opts.keepQuery) {
@@ -1681,109 +1667,6 @@
         ${icon('chevronRight', { size: 14 })}
       </button>`;
     }).join('') || '<div class="root-empty" style="grid-column:1/-1">No folders mapped yet — index a location to see its folder tree.</div>';
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════
-     Ask Nova
-     ═══════════════════════════════════════════════════════════════════════ */
-  const ASK_EXAMPLES = [
-    'big videos from iceland edited last week',
-    'starred pdfs about the brand',
-    'design files over 50 MB',
-    'screenshots from today',
-    'code that mentions search',
-    'wallpapers and images',
-  ];
-
-  function bindAsk() {
-    const input = refs.askInput;
-    refs.askExamples.innerHTML = ASK_EXAMPLES.map((ex, i) => `<button class="ask-ex" data-ask="${esc(ex)}" style="animation-delay:${i * 40}ms">“${esc(ex)}”</button>`).join('');
-    refs.askExamples.addEventListener('click', (ev) => {
-      const btn = ev.target.closest('[data-ask]');
-      if (!btn) return;
-      input.value = btn.dataset.ask;
-      askRun();
-    });
-    refs.askGo.addEventListener('click', askRun);
-    input.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); askRun(); }
-    });
-    input.addEventListener('input', () => {
-      input.style.height = 'auto';
-      input.style.height = Math.min(140, input.scrollHeight) + 'px';
-    }, false);
-  }
-
-  function renderAsk() {
-    if (!refs.ask._init) {
-      refs.ask._init = true;
-    }
-    if (refs.askList && !refs.askList.dataset.ready) {
-      refs.askList.dataset.ready = '1';
-      refs.askList.innerHTML = '';
-    }
-  }
-
-  function askRun() {
-    const text = refs.askInput.value.trim();
-    if (!text) { refs.askInput.focus(); return; }
-    const analysis = analyzeSmart(text);
-    const kindFromWords = analysis.kindChips;
-    const run = search.run(store.state.entries, analysis.effective, {
-      sort: 'relevance',
-      showHidden: store.state.settings.showHidden,
-      fuzzy: true,
-    });
-    const chips = analysis.chips;
-    refs.askResultHead.hidden = false;
-    refs.askResultHead.innerHTML = `<span>${icon('sparkles', { size: 13 })}</span> Interpreted <b>${chips.length ? chips.length + ' signals' : 'as keywords'}</b> · <b>${fmtNum(run.total)}</b> files in ${fmtTime(run.took)}`;
-    refs.askChips.hidden = false;
-    refs.askChips.innerHTML = (chips.length ? chips : [{ label: analysis.tokens.join(' ') || text, icon: 'search', query: text }])
-      .map((chip) => `<button class="kind-chip" data-ask-chip="${esc(chip.query)}" title="Run this in Search">${icon(chip.icon, { size: 12 })}<span>${esc(chip.label)}</span></button>`).join('')
-      + `<button class="kind-chip" data-ask-refine style="--kc:var(--accent)">${icon('arrowUpRight', { size: 12 })}<span>Open in Search</span></button>`;
-    refs.askChips.querySelectorAll('[data-ask-chip]').forEach((btn) => btn.addEventListener('click', () => {
-      setView('search', { keepQuery: true, silent: true });
-      applyQuery(btn.dataset.askChip);
-    }));
-    refs.askChips.querySelector('[data-ask-refine]')?.addEventListener('click', () => {
-      setView('search', { keepQuery: true, silent: true });
-      applyQuery(analysis.tokens.join(' ') || text);
-      state.chipKind = kindFromWords.length === 1 ? kindFromWords[0].query.split(':')[1] : null;
-      runSearch();
-    });
-    const items = run.results.slice(0, 12);
-    refs.askList.innerHTML = items.map((item, i) => {
-      const e = item.entry;
-      const def = NS.kindOf(e);
-      return `<article class="row" data-ask-id="${esc(e.id)}" style="--kc:${def.color};animation-delay:${i * 25}ms">
-        <div class="r-main">
-          <div class="thumb ${e.thumb ? '' : 'ext-thumb'}" data-ext="${esc((e.ext || def.label).slice(0, 6))}">${thumbHTML(e, def)}</div>
-          <div class="r-text">
-            <div class="r-name">${nameHTML(e, item.indices)}</div>
-            <div class="r-sub"><span class="r-gmeta">${esc(def.label)} · ${fmtBytes(e.size)} · ${esc(parentFolder(e))}</span></div>
-          </div>
-        </div>
-        <div class="r-loc">${icon('folder', { size: 12 })}<span>${esc(parentFolder(e))}</span></div>
-        <div class="r-kind-cell"><span class="pill" style="--kc:${def.color}">${icon(def.icon, { size: 10 })}${esc(def.label)}</span></div>
-        <div class="r-size">${fmtBytes(e.size)}</div>
-        <div class="r-date">${fmtDate(e.modified)}</div>
-        <div class="r-actions"></div>
-      </article>`;
-    }).join('');
-    refs.askChips.hidden = false;
-    refs.askChips.hidden = false;
-    refs.askChips.hidden = false;
-    refs.askChips.dataset.done = '1';
-    if (!items.length) {
-      refs.askList.innerHTML = `<div class="empty-state"><div class="empty-art">${ui.emptyArt('search')}</div><h3>No files fit that description</h3><p>Try fewer details, or a different wording.</p></div>`;
-    }
-    refs.askList.querySelectorAll('[data-ask-id]').forEach((row) => {
-      row.addEventListener('click', () => {
-        const entry = entryById(row.dataset.askId);
-        if (entry) { state.activeId = entry.id; openPreview(entry); }
-      });
-    });
-    refs.askResultHead.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -2187,7 +2070,6 @@
   const COMMANDS = [
     { id: 'index', title: 'Index a folder', sub: 'Scan names, formats and metadata locally', icon: 'drive', key: `${modKey}O`, run: () => indexFolders() },
     { id: 'import', title: 'Import files', sub: 'Add individual files to the index', icon: 'download', key: `${modKey}I`, run: () => refs.fileInput.click() },
-    { id: 'ask', title: 'Ask Nova', sub: 'Describe what you need in plain words', icon: 'sparkles', key: `${modKey}⇧K`, run: () => setView('ask') },
     { id: 'starred', title: 'Go to Starred', sub: 'Every file you saved', icon: 'star', key: `${modKey}2`, run: () => setView('starred') },
     { id: 'recent', title: 'Go to Recent', sub: 'Sorted by modification time', icon: 'clock', key: `${modKey}3`, run: () => setView('recent') },
     { id: 'library', title: 'Open Library', sub: 'Roots, folders and coverage', icon: 'layers', key: `${modKey}4`, run: () => setView('library') },
@@ -2318,7 +2200,6 @@
       }
 
       if (mod && key === 'k' && !ev.shiftKey) { ev.preventDefault(); openPalette(); return; }
-      if (mod && key === 'k' && ev.shiftKey) { ev.preventDefault(); setView('ask'); return; }
       if (mod && ev.key === ',') { ev.preventDefault(); ui.resetSettingsForm(); ui.renderRoots(rootHandlers); ui.openOverlay('settingsOverlay'); return; }
       if (mod && key === 'o') { ev.preventDefault(); indexFolders(); return; }
       if (mod && key === 'i' && !ev.shiftKey) { ev.preventDefault(); refs.fileInput.click(); return; }
@@ -2334,10 +2215,10 @@
         if (entry) copyPath(entry);
         return;
       }
-      if (mod && key === 'l') { ev.preventDefault(); if (state.view === 'ask') setView('search', { keepQuery: true, silent: true }); refs.query.focus(); refs.query.select(); return; }
+      if (mod && key === 'l') { ev.preventDefault(); refs.query.focus(); refs.query.select(); return; }
       if (mod && ev.shiftKey && key === 'l') { ev.preventDefault(); store.setSettings({ theme: document.documentElement.dataset.theme === 'light' ? 'dark' : 'light' }); applyTheme(); ui.resetSettingsForm(); return; }
 
-      if (ev.key === '/' && !typing) { ev.preventDefault(); if (state.view === 'ask') setView('search', { keepQuery: true, silent: true }); refs.query.focus(); return; }
+      if (ev.key === '/' && !typing) { ev.preventDefault(); refs.query.focus(); return; }
       if (ev.key === '?' && !typing) { ev.preventDefault(); ui.openOverlay('shortcutsOverlay'); return; }
       if (ev.key === '?' && typing) { ui.openOverlay('shortcutsOverlay'); return; }
       if (typing) return;
@@ -2430,7 +2311,7 @@
 
   NS.app = {
     state, runSearch, setView, applyQuery, openPreview, closePreview, openPalette, renderHistory,
-    focusSearch: () => { if (state.view === 'ask') setView('search', { keepQuery: true, silent: true }); refs.query.focus(); },
+    focusSearch: () => { refs.query.focus(); },
     indexFolders, importFiles, refreshMeta, renderLibrary, boot, analyzeSmart,
     ingestFiles: (files, label) => ingestFileList(files, label || 'Folder'),
     ingestNativeScan: (label, result) => {
