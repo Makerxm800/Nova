@@ -258,6 +258,7 @@
       { label: 'Big files', icon: 'gauge', q: 'size:>1gb' },
       { label: 'This week', icon: 'clock', q: 'after:week' },
     ];
+    refs.heroChips.hidden = empty;
     refs.heroChips.innerHTML = chips.map((chip, i) => `
       <button class="hero-chip" data-hero="${esc(chip.q)}" style="animation-delay:${i * 45}ms">
         <span data-icon="${chip.icon}"></span>${esc(chip.label)}
@@ -771,6 +772,29 @@
     return icon(def.icon, { size: 20 });
   }
 
+  /* The location column carries the real directory, not just the leaf folder:
+     the leaf alone repeats on almost every row, so it says very little. */
+  function locPath(entry) {
+    return entry.dir || U.pathDir(entry.path || '') || entry.root || entry.rootPath || '';
+  }
+
+  /* Long paths are trimmed from the left, keeping the deepest segments — the
+     part that actually tells two similar files apart. The budget matches the
+     210px location column, so the label fits without a second ellipsis. */
+  function locLabel(entry) {
+    const dir = locPath(entry);
+    if (!dir || dir.length <= 28) return dir || parentFolder(entry);
+    const sep = dir.includes('\\') && !dir.includes('/') ? '\\' : '/';
+    const parts = dir.split(/[\\/]+/).filter(Boolean);
+    let out = parts[parts.length - 1] || dir;
+    for (let i = parts.length - 2; i >= 0; i--) {
+      const next = parts[i] + sep + out;
+      if (next.length > 26) break;
+      out = next;
+    }
+    return `…${sep}${out}`;
+  }
+
   function rowHTML(item, index, view) {
     const entry = item.entry;
     const def = NS.kindOf(entry);
@@ -790,7 +814,7 @@
           <div class="r-sub">${badge}${subTags || `<span class="r-gmeta">${gmeta}</span>`}</div>
         </div>
       </div>
-      <div class="r-loc">${icon('folder', { size: 12 })}<span>${esc(parentFolder(entry))}</span></div>
+      <div class="r-loc" title="${esc(locPath(entry))}">${icon('folder', { size: 12 })}<span>${esc(locLabel(entry))}</span></div>
       <div class="r-kind-cell"><span class="pill" style="--kc:${def.color}">${icon(def.icon, { size: 10 })}${esc(def.label)}</span></div>
       <div class="r-size">${fmtBytes(entry.size)}</div>
       <div class="r-date ${today ? 'today' : ''}">${fmtDate(entry.modified)}</div>
@@ -813,9 +837,14 @@
       const wanted = nameHTML(entry, item.indices) + flagHTML(entry);
       if (nameEl.innerHTML !== wanted) nameEl.innerHTML = wanted;
     }
-    const locEl = row.querySelector('.r-loc span');
-    const loc = parentFolder(entry);
-    if (locEl && locEl.textContent !== loc) locEl.textContent = loc;
+    const locCell = row.querySelector('.r-loc');
+    if (locCell) {
+      const path = locPath(entry);
+      if (locCell.title !== path) locCell.title = path;
+      const locEl = locCell.querySelector('span');
+      const loc = locLabel(entry);
+      if (locEl && locEl.textContent !== loc) locEl.textContent = loc;
+    }
     const subEl = row.querySelector('.r-sub');
     if (subEl) {
       const wanted = (entry.badge ? `<span class="r-badge" style="--bc:${badgeColor(entry.badge.tone)}">${esc(entry.badge.text)}</span>` : '')
